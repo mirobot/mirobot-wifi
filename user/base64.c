@@ -71,7 +71,6 @@ int ICACHE_FLASH_ATTR base64_decode(size_t in_len, const char *in, size_t out_le
 }
 
 //Only need decode functions for now.
-#if 0
 
 static const uint8_t base64enc_tab[64]= "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 
@@ -112,5 +111,3 @@ int base64_encode(size_t in_len, const unsigned char *in, size_t out_len, char *
 	out[io]=0;
 	return io;
 }
-
-#endif

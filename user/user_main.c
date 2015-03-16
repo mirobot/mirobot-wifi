@@ -14,13 +14,19 @@
 #include "ets_sys.h"
 #include "osapi.h"
 #include "httpd.h"
+#include "websocket.h"
 #include "io.h"
 #include "httpdespfs.h"
 #include "cgi.h"
 #include "cgiwifi.h"
 #include "cgiflash.h"
 #include "stdout.h"
+#include "driver/uart.h"
 #include "auth.h"
+
+char inputBuffer[100];
+int inputBufferCounter = 0;
+//bool updatingArduino = false;
 
 //Function that tells the authentication system what users/passwords live on the system.
 //This is disabled in the default build; if you want to try it, enable the authBasic line in
@@ -74,11 +80,34 @@ HttpdBuiltInUrl builtInUrls[]={
 	{NULL, NULL, NULL}
 };
 
+void serialHandler(uint8 incoming){
+  //if(updatingArduino){
+  //  arduinoRcv(incoming);
+  //}else{
+    if(incoming == '\r' || incoming == '\n'){
+      if(inputBufferCounter > 0){
+        // Send the string
+        inputBuffer[inputBufferCounter] = 0;
+        wsSend(0, (char *)inputBuffer);
+        inputBufferCounter = 0;
+      }
+    }else{
+      inputBuffer[inputBufferCounter++] = incoming;
+    }
+  //}
+}
+
+void wsHandler(int conn_no, char *msg){
+  // Send the received WebSocket payload out via the serial port
+  uart0_sendStr(msg);
+  uart0_sendStr("\r\n");
+}
 
 //Main routine. Initialize stdout, the I/O and the webserver and we're done.
 void user_init(void) {
 	stdoutInit();
 	ioInit();
 	httpdInit(builtInUrls, 80);
+	wsInit(8899, wsHandler);
 	os_printf("\nReady\n");
 }
