@@ -105,7 +105,8 @@ void wsHandler(int conn_no, char *msg){
 
 //Main routine. Initialize stdout, the I/O and the webserver and we're done.
 void user_init(void) {
-	stdoutInit();
+	uart_init(BIT_RATE_57600, BIT_RATE_115200);
+	install_uart0_rx_handler(serialHandler);
 	ioInit();
 	httpdInit(builtInUrls, 80);
 	wsInit(8899, wsHandler);
