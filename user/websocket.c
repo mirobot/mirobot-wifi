@@ -294,7 +294,6 @@ static void ICACHE_FLASH_ATTR wsConnectCb(void *arg) {
 	espconn_regist_reconcb(conn, wsReconCb);
 	espconn_regist_disconcb(conn, wsDisconCb);
 	espconn_regist_sentcb(conn, wsSentCb);
-	espconn_regist_time(conn, 28800, 0);
 }
 
 void ICACHE_FLASH_ATTR wsSend(int conn_no, char *msg){
@@ -323,4 +322,5 @@ void ICACHE_FLASH_ATTR wsInit(int port, void *handler){
 	os_printf("Httpd init, conn=%p\n", &wsConn);
 	espconn_regist_connectcb(&wsConn, wsConnectCb);
 	espconn_accept(&wsConn);
+	espconn_regist_time(&wsConn, 28800, 0);
 }
