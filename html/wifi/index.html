@@ -11,7 +11,7 @@ label{
 }
 .info{
   margin:15px 0;
-  font-size:85%;
+  font-size:85%%;
   color:#999;
 }
 .info p{margin:6px 0}
@@ -31,9 +31,8 @@ var xhrObject=function(a){for(a=0;a<4;a++)try{return a?new ActiveXObject(["Msxml
 var aps = [];
 
 function scanAPs() {
-	//xhr.open("GET", "wifiscan.cgi");
 	var xhr = xhrObject();
-	xhr.open("GET", "temp_scan.json");
+	xhr.open("GET", "wifiscan.cgi");
 	xhr.onreadystatechange=function() {
 		if (xhr.readyState==4 && xhr.status>=200 && xhr.status<300) {
 			var data=JSON.parse(xhr.responseText);

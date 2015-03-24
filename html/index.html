@@ -302,52 +302,10 @@
   </div>
   <div id="code"></div>
   <script>
-    var wirelessConfig = function(){
-/*<%
-CONFIG_VAR(sta_setting_ssid, CFG_WSSSID);
-CONFIG_VAR(sta_setting_auth, CFG_WSAUTH);
-CONFIG_VAR(sta_setting_encry, CFG_WSENC);
-CONFIG_VAR(sta_setting_wpakey, CFG_WSKEY);
-CONFIG_VAR(cover_sta_rssi, CFG_WSRSSI);
-CONFIG_VAR(wan_setting_dhcp, CFG_WSDHCP);
-CONFIG_VAR(wan_setting_ip, CFG_WSIP);
-CONFIG_VAR(wan_setting_msk, CFG_WSMSK);
-CONFIG_VAR(wan_setting_gw, CFG_WSGW);
-CONFIG_VAR(wan_setting_dns, CFG_WSDNS);
-CONFIG_VAR(cover_ver, CFG_PVER);
-CONFIG_VAR(wifi_mode, CFG_WMODE);
-%>*/
-  if(typeof sta_setting_ssid === 'undefined'){ //used for testing locally
-    sta_setting_ssid = 'Dummy';
-    sta_setting_auth = 'WPA2PSK';
-    sta_setting_encry = 'AES';
-    sta_setting_wpakey = 'pass';
-    sta_setting_type = 'ASCII';
-    cover_sta_rssi = '78%';
-    wan_setting_dhcp = 'DHCP'
-    wan_setting_ip = '192.168.1.100';
-    wan_setting_msk = '255.255.255.0';
-    wan_setting_gw = '191.168.1.1';
-    wan_setting_dns = '194.168.0.72';
-    cover_ver = 'V1.0.03a';
-    wifi_mode = 'APSTA';
-  }
-  return {
-    sta_setting_ssid: sta_setting_ssid,
-    sta_setting_auth: sta_setting_auth,
-    sta_setting_encry: sta_setting_encry,
-    sta_setting_wpakey: sta_setting_wpakey,
-    sta_setting_type: 'ASCII',
-    wan_setting_dhcp: wan_setting_dhcp,
-    wan_setting_ip: wan_setting_ip,
-    wan_setting_msk: wan_setting_msk,
-    wan_setting_gw: wan_setting_gw,
-    wan_setting_dns: wan_setting_dns,
-    cover_sta_rssi: cover_sta_rssi,
-    cover_ver: cover_ver,
-    wifi_mode: wifi_mode
-  }
-}();
+    var wirelessConfig = {"clientSSID":"%clientSSID%","wifiMode":"%wifiMode%","clientIp":"%clientIp%","clientGateway":"%clientGateway%","clientNetmask":"%clientNetmask%","clientDhcp":"%clientDhcp%","clientMac":"%clientMac%","clientConnected":"%clientConnected%","APAuth":"%APAuth%","APChannel":"%APChannel%","APSSID":"%APSSID%"}
+if(wirelessConfig.clientSSID.indexOf('clientSSID') > -1){
+  wirelessConfig = {"clientSSID":"foo","wifiMode":"3","clientIp":"192.168.1.100","clientGateway":"192.168.1.1","clientNetmask":"255.255.255.0","clientDhcp":"true","clientMac":"10:20:30:40:50:60","clientConnected":"true","APAuth":"0","APChannel":"6","APSSID":"Mirobot-abcd"};
+}
  
   </script>
   <script type="text/javascript" src="snack.js"></script>
@@ -442,21 +400,15 @@ CONFIG_VAR(wifi_mode, CFG_WMODE);
         wirelessConfig = config;
       
         var conn = el('wifiConnState');
-        if(wirelessConfig.wan_setting_ip === '0.0.0.0'){
+        if(wirelessConfig.clientConnected === 'false'){
           conn.innerHTML = '&#10007; Configure WiFi';
           conn.className = 'connState';
           checkConfig(10000);
         }else{
-          conn.innerHTML = '&#10003; Connected to WiFi (' + wirelessConfig.cover_sta_rssi + ')';
+          conn.innerHTML = '&#10003; Connected to WiFi';
           conn.className = 'connState connected';
           checkConfig(60000);
         }
-      }
-
-      window.updateWirelessConfigIframe = function(config){
-        var frame = el('configIframe')
-        if(frame) frame.parentNode.removeChild(frame);
-        updateWirelessConfig(config);
       }
 
       window.hideWiFiConfig = function(){
@@ -542,17 +494,15 @@ CONFIG_VAR(wifi_mode, CFG_WMODE);
 
       var checkConfig = function(delay){
         var fn = function(){
-          var iframe = document.createElement('iframe');
-          iframe.src = "wireless_config_js.html";
-          iframe.id = 'configIframe';
-          document.body.appendChild(iframe);
-          window.setTimeout(function(){
-            var frame = el('configIframe');
-            if(frame){
-              frame.parentNode.removeChild(frame);
-              checkConfig(10000);
+          var xhr = new XMLHttpRequest();
+          xhr.open('get', '/wifi/settings.json', true);
+          xhr.onreadystatechange = function() {
+            var data;
+            if (xhr.readyState == 4 && xhr.status == 200) {
+              updateWirelessConfig(JSON.parse(xhr.responseText));
             }
-          }, 5000);
+          };
+          xhr.send();
         }
         if(delay){
           if(configTimeout) window.clearTimeout(configTimeout);
