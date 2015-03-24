@@ -4,9 +4,7 @@
 #include "httpd.h"
 
 int cgiWiFiScan(HttpdConnData *connData);
-int tplWlan(HttpdConnData *connData, char *token, void **arg);
-int cgiWiFi(HttpdConnData *connData);
-int cgiWiFiConnect(HttpdConnData *connData);
-int cgiWifiSetMode(HttpdConnData *connData);
+int cgiWifiSettings(HttpdConnData *connData);
+int tplWlanInfo(HttpdConnData *connData, char *token, void **arg);
 
 #endif

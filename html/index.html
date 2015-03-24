@@ -473,7 +473,7 @@ CONFIG_VAR(wifi_mode, CFG_WMODE);
     
       var configureWifi = function(e){
         e.preventDefault();
-        el('wifiFrame').src = '/wireless_en.html';
+        el('wifiFrame').src = '/wifi/index.html';
         el('wifiConfig').style.display = 'block';
         el('wifiContent').onclick = function(e){e.stopPropagation()};
         el('wifiConfig').onclick = function(){hideModal('wifiConfig');checkConfig();};
