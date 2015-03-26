@@ -192,9 +192,9 @@ uart0_rx_intr_handler(void *para)
     if(rxFn){
       uint8_t temp;
       temp = READ_PERI_REG(UART_FIFO(UART0)) & 0xFF;
-      if(temp){
+      //if(temp){
         rxFn(temp);
-      }
+      //}
     }
     WRITE_PERI_REG(UART_INT_CLR(uart_no), UART_RXFIFO_FULL_INT_CLR);
   }
