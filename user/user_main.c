@@ -16,13 +16,16 @@
 #include "httpd.h"
 #include "websocket.h"
 #include "io.h"
+#include "gpio.h"
 #include "httpdespfs.h"
 #include "cgi.h"
 #include "cgiwifi.h"
 #include "cgiflash.h"
+#include "cgiarduino.h"
 #include "stdout.h"
 #include "driver/uart.h"
 #include "auth.h"
+#include "arduino.h"
 
 char inputBuffer[100];
 int inputBufferCounter = 0;
@@ -59,6 +62,9 @@ should be placed above the URLs they protect.
 HttpdBuiltInUrl builtInUrls[]={
 	{"/", cgiRedirect, "/index.html"},
 	{"/updateweb.cgi", cgiUploadEspfs, NULL},
+	{"/updatearduino.cgi", cgiArduinoUpload, NULL},
+	{"/flasharduino.cgi", cgiArduinoFlash, NULL},
+	{"/flash.bin", cgiReadFlash, NULL},
 
 	//Routines to make the /wifi URL and everything beneath it work.
 
@@ -77,9 +83,9 @@ HttpdBuiltInUrl builtInUrls[]={
 };
 
 void serialHandler(uint8 incoming){
-  //if(updatingArduino){
-  //  arduinoRcv(incoming);
-  //}else{
+  if(arduinoUpdating()){
+    arduinoHandleData(incoming);
+  }else{
     if(incoming == '\r' || incoming == '\n'){
       if(inputBufferCounter > 0){
         // Send the string
@@ -90,7 +96,7 @@ void serialHandler(uint8 incoming){
     }else{
       inputBuffer[inputBufferCounter++] = incoming;
     }
-  //}
+  }
 }
 
 void wsHandler(int conn_no, char *msg){
@@ -103,6 +109,8 @@ void wsHandler(int conn_no, char *msg){
 void user_init(void) {
 	uart_init(BIT_RATE_57600, BIT_RATE_115200);
 	install_uart0_rx_handler(serialHandler);
+  gpio_output_set(1, 0, 1, 0);
+	//stdoutInit();
 	ioInit();
 	httpdInit(builtInUrls, 80);
 	wsInit(8899, wsHandler);
