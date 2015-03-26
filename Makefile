@@ -20,10 +20,11 @@ SDK_BASE	?= /opt/Espressif/ESP8266_SDK
 
 #Esptool.py path and port
 ESPTOOL		?= esptool
+ESPTOOLPY		?= esptool.py
 ESPPORT		?= /dev/ttyUSB0
 #ESPDELAY indicates seconds to wait between flashing the two binary images
 ESPDELAY	?= 3
-ESPBAUD		?= 115200
+ESPBAUD		?= 230400
 
 # name for the target project
 TARGET		= httpd
@@ -138,20 +139,23 @@ firmware:
 	$(Q) mkdir -p $@
 
 flash: $(FW_FILE_1) $(FW_FILE_2)
-	$(Q) $(ESPTOOL) -cp $(ESPPORT) -cb $(ESPBAUD) -ca 0x00000 -cf firmware/0x00000.bin -v
-	$(Q) [ $(ESPDELAY) -ne 0 ] && echo "Please put the ESP in bootloader mode..." || true
-	$(Q) sleep $(ESPDELAY) || true
-	$(Q) $(ESPTOOL) -cp $(ESPPORT) -cb $(ESPBAUD) -ca 0x40000 -cf firmware/0x40000.bin -v
+	$(Q) $(ESPTOOLPY) --port $(ESPPORT) --baud $(ESPBAUD) write_flash 0x00000 $(FW_FILE_1) 0x40000 $(FW_FILE_2)
 
-webpages.espfs: html/ html/wifi/ mkespfsimage/mkespfsimage
+cleanweb:
+	$(Q) rm webpages.espfs
+
+webpages.espfs: html/ html/wifi/ mkespfsimage/mkespfsimage cleanweb
 	cd html; find . | ../mkespfsimage/mkespfsimage > ../webpages.espfs; cd ..
 
 mkespfsimage/mkespfsimage: mkespfsimage/
 	make -C mkespfsimage
 
-htmlflash: webpages.espfs
-	if [ $$(stat -c '%s' webpages.espfs) -gt $$(( 0x2E000 )) ]; then echo "webpages.espfs too big!"; false; fi
-	$(ESPTOOL) -cp $(ESPPORT) -cb $(ESPBAUD) -ca 0x12000 -cf webpages.espfs -v
+flashweb: webpages.espfs
+	#if [ $$(stat -c '%s' webpages.espfs) -gt $$(( 0x2E000 )) ]; then echo "webpages.espfs too big!"; false; fi
+	$(Q) $(ESPTOOLPY) --port $(ESPPORT) --baud $(ESPBAUD) write_flash 0x12000 webpages.espfs
+
+flashall: webpages.espfs $(FW_FILE_1) $(FW_FILE_2)
+	$(Q) $(ESPTOOLPY) --port $(ESPPORT) --baud $(ESPBAUD) write_flash 0x00000 $(FW_FILE_1) 0x12000 webpages.espfs 0x40000 $(FW_FILE_2)
 
 clean:
 	$(Q) rm -f $(APP_AR)
