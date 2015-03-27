@@ -18,10 +18,8 @@ Esp8266 http server - core routines
 #include "espconn.h"
 #include "mem.h"
 #include "osapi.h"
-
 #include "espconn.h"
 #include "httpd.h"
-#include "io.h"
 #include "espfs.h"
 
 

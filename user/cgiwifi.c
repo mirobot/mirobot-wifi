@@ -17,11 +17,7 @@ Cgi/template routines for the /wifi url.
 #include "user_interface.h"
 #include "mem.h"
 #include "httpd.h"
-#include "io.h"
 #include "espmissingincludes.h"
-
-//Enable this to disallow any changes in AP settings
-//#define DEMO_MODE
 
 //WiFi access point data
 typedef struct {
@@ -94,7 +90,6 @@ void ICACHE_FLASH_ATTR wifiScanDoneCb(void *arg, STATUS status) {
 
 //Routine to start a WiFi access point scan.
 static void ICACHE_FLASH_ATTR wifiStartScan() {
-//	int x;
 	if (cgiWifiAps.scanInProgress) return;
 	cgiWifiAps.scanInProgress=1;
 	wifi_station_scan(NULL, wifiScanDoneCb);
@@ -156,7 +151,6 @@ int ICACHE_FLASH_ATTR cgiWifiSettings(HttpdConnData *connData) {
 	wifi_softap_get_config(&apconf);
 
 	// Configure the WiFi mode if it has been set
-	os_printf("WUH?\n");
 	len=httpdFindArg(connData->post->buff, "wifiMode", buff, sizeof(buff));
 	os_printf("len: %d\n", len);
 	if (len>0) {
@@ -269,7 +263,6 @@ int ICACHE_FLASH_ATTR cgiWifiSettings(HttpdConnData *connData) {
 		//Schedule disconnect/connect
 		os_timer_disarm(&postTimer);
 		os_timer_setfn(&postTimer, resetTimerCb, NULL);
-		//Set to 0 if you want to disable the actual reconnecting bit
 		os_timer_arm(&postTimer, 500, 0);
 	}else	if(connect){
 		os_printf("Try to connect to AP %s pw %s\n", stconf.ssid, stconf.password);

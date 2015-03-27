@@ -3,7 +3,6 @@
 #include "osapi.h"
 #include "httpd.h"
 #include "websocket.h"
-#include "io.h"
 #include "gpio.h"
 #include "httpdespfs.h"
 #include "cgiwifi.h"
@@ -62,13 +61,19 @@ void wsHandler(int conn_no, char *msg){
   uart0_sendStr("\r\n");
 }
 
+void initIO(){
+	PIN_FUNC_SELECT(PERIPHS_IO_MUX_GPIO2_U, FUNC_GPIO2);
+	PIN_FUNC_SELECT(PERIPHS_IO_MUX_GPIO0_U, FUNC_GPIO0);
+	gpio_output_set(0, 0, (1<<2), (1<<0));
+}
+
 //Main routine. Initialize stdout, the I/O and the webserver and we're done.
 void user_init(void) {
 	uart_init(BIT_RATE_57600, BIT_RATE_115200);
 	install_uart0_rx_handler(serialHandler);
   gpio_output_set(1, 0, 1, 0);
 	//stdoutInit();
-	ioInit();
+	initIO();
 	httpdInit(builtInUrls, 80);
 	wsInit(8899, wsHandler);
 	os_printf("\nReady\n");

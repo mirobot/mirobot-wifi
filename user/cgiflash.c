@@ -18,7 +18,6 @@ Some flash handling cgi routines. Used for reading the existing flash and updati
 #include "mem.h"
 #include "httpd.h"
 #include "cgiflash.h"
-#include "io.h"
 #include <ip_addr.h>
 #include "espmissingincludes.h"
 #include "../include/httpdconfig.h"

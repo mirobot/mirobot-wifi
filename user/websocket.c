@@ -9,7 +9,6 @@
 
 #include "espconn.h"
 #include "websocket.h"
-#include "io.h"
 #include "driver/uart.h"
 
 //Max length of request head
@@ -91,23 +90,6 @@ void ICACHE_FLASH_ATTR wsEndHeaders(WsConnData *conn) {
 //Callback called when the data on a socket has been successfully
 //sent.
 static void ICACHE_FLASH_ATTR wsSentCb(void *arg) {
-  /*
-	int r;
-	WsConnData *conn=wsFindConnData(arg);
-//	os_printf("Sent callback on conn %p\n", conn);
-	if (conn==NULL) return;
-	if (conn->cgi==NULL) { //Marked for destruction?
-		os_printf("Conn %p is done. Closing.\n", conn->conn);
-		espconn_disconnect(conn->conn);
-		wsRetireConn(conn);
-		return;
-	}
-
-	r=conn->cgi(conn); //Execute cgi fn.
-	if (r==HTTPD_CGI_DONE) {
-		conn->cgi=NULL; //mark for destruction.
-	}
-	*/
 }
 
 //Parse a line of header data and modify the connection data accordingly.
