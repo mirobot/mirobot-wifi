@@ -1,15 +1,3 @@
-
-
-/*
- * ----------------------------------------------------------------------------
- * "THE BEER-WARE LICENSE" (Revision 42):
- * Jeroen Domburg <jeroen@spritesmods.com> wrote this file. As long as you retain 
- * this notice you can do whatever you want with this stuff. If we meet some day, 
- * and you think this stuff is worth it, you can buy me a beer in return. 
- * ----------------------------------------------------------------------------
- */
-
-
 #include "espmissingincludes.h"
 #include "ets_sys.h"
 #include "osapi.h"
@@ -18,59 +6,27 @@
 #include "io.h"
 #include "gpio.h"
 #include "httpdespfs.h"
-#include "cgi.h"
 #include "cgiwifi.h"
 #include "cgiflash.h"
 #include "cgiarduino.h"
 #include "stdout.h"
 #include "driver/uart.h"
-#include "auth.h"
 #include "arduino.h"
 
 char inputBuffer[100];
 int inputBufferCounter = 0;
-//bool updatingArduino = false;
 
-//Function that tells the authentication system what users/passwords live on the system.
-//This is disabled in the default build; if you want to try it, enable the authBasic line in
-//the builtInUrls below.
-int myPassFn(HttpdConnData *connData, int no, char *user, int userLen, char *pass, int passLen) {
-	if (no==0) {
-		os_strcpy(user, "admin");
-		os_strcpy(pass, "s3cr3t");
-		return 1;
-//Add more users this way. Check against incrementing no for each user added.
-//	} else if (no==1) {
-//		os_strcpy(user, "user1");
-//		os_strcpy(pass, "something");
-//		return 1;
-	}
-	return 0;
-}
-
-
-/*
-This is the main url->function dispatching data struct.
-In short, it's a struct with various URLs plus their handlers. The handlers can
-be 'standard' CGI functions you wrote, or 'special' CGIs requiring an argument.
-They can also be auth-functions. An asterisk will match any url starting with
-everything before the asterisks; "*" matches everything. The list will be
-handled top-down, so make sure to put more specific rules above the more
-general ones. Authorization things (like authBasic) act as a 'barrier' and
-should be placed above the URLs they protect.
-*/
+// This is the main url->function dispatching data struct.
 HttpdBuiltInUrl builtInUrls[]={
 	{"/", cgiRedirect, "/index.html"},
+	
+	// admin functions
 	{"/updateweb.cgi", cgiUploadEspfs, NULL},
 	{"/updatearduino.cgi", cgiArduinoUpload, NULL},
 	{"/flasharduino.cgi", cgiArduinoFlash, NULL},
 	{"/flash.bin", cgiReadFlash, NULL},
 
 	//Routines to make the /wifi URL and everything beneath it work.
-
-//Enable the line below to protect the WiFi configuration with an username/password combo.
-//	{"/wifi/*", authBasic, myPassFn},
-
 	{"/wifi", cgiRedirect, "/wifi/index.html"},
 	{"/wifi/", cgiRedirect, "/wifi/index.html"},
 	{"/wifi/wifiscan.cgi", cgiWiFiScan, NULL},
@@ -78,7 +34,8 @@ HttpdBuiltInUrl builtInUrls[]={
 	{"/wifi/settings.cgi", cgiWifiSettings, NULL},
 	{"/wifi/settings.json", cgiEspFsTemplate, tplWlanInfo},
 
-	{"*", cgiEspFsHook, NULL}, //Catch-all cgi function for the filesystem
+  //Catch-all cgi function for the filesystem
+	{"*", cgiEspFsHook, NULL},
 	{NULL, NULL, NULL}
 };
 
