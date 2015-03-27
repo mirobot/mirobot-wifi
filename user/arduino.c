@@ -147,6 +147,10 @@ bool arduinoUpdating(){
   return arduinoUpdateState.state != IDLE;
 }
 
+int arduinoPagesFlashed(){
+  return arduinoUpdateState.page;
+}
+
 bool okMsg(){
   return (rcvBufferCounter >= 2 && rcvBuffer[0] == 20 && rcvBuffer[1] == 16);
 }

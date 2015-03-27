@@ -42,10 +42,19 @@ int ICACHE_FLASH_ATTR cgiArduinoUpload(HttpdConnData *connData) {
 
 
 int ICACHE_FLASH_ATTR cgiArduinoFlash(HttpdConnData *connData) {
-  if(arduinoBeginUpdate()){
-    httpdSend(connData, "HTTP/1.0 204 No Content\r\nServer: esp8266-httpd/0.3\r\n\r\n", -1);
-  }else{
-    httpdSend(connData, "HTTP/1.0 500 Server Error\r\nServer: esp8266-httpd/0.3\r\n\r\n", -1);
+  if(connData->requestType == HTTPD_METHOD_POST){
+    if(arduinoBeginUpdate()){
+      httpdSend(connData, "HTTP/1.0 204 No Content\r\nServer: esp8266-httpd/0.3\r\n\r\n", -1);
+    }else{
+      httpdSend(connData, "HTTP/1.0 500 Server Error\r\nServer: esp8266-httpd/0.3\r\n\r\n", -1);
+    }
+  }else if(connData->requestType == HTTPD_METHOD_GET){
+    char headbuff[110];
+    char buff[40];
+    os_sprintf(buff, "{\"state\":\"%s\",\"pages\":%d}", (arduinoUpdating() ? "flashing" : "done"), arduinoPagesFlashed());
+    os_sprintf(headbuff, "HTTP/1.0 200 OK\r\nServer: esp8266-httpd/0.3\r\nContent-Type: application/json\r\nContent-Length: %d\r\n\r\n", strlen(buff));
+    httpdSend(connData, headbuff, -1);
+    httpdSend(connData, buff, -1);
   }
   return HTTPD_CGI_DONE;
 }

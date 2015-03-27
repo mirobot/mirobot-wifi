@@ -24,5 +24,6 @@ bool arduinoBeginUpdate();
 char arduinoGetStatus();
 void arduinoHandleData(uint8 incoming);
 bool arduinoUpdating();
+int arduinoPagesFlashed();
 
 #endif
