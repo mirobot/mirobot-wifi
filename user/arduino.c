@@ -14,19 +14,19 @@ static bool in_progress  = false;
 arduinoUpdateState_t arduinoUpdateState;
 static ETSTimer commsTimeout;
 
-void arduinoCommsTimeout(){
+void ICACHE_FLASH_ATTR arduinoCommsTimeout(){
   arduinoUpdateState.state = IDLE;
   rcvBufferCounter = 0;
 }
 
-void setTimeout(){
+void ICACHE_FLASH_ATTR setTimeout(){
   //Schedule disconnect/connect
   os_timer_disarm(&commsTimeout);
   os_timer_setfn(&commsTimeout, arduinoCommsTimeout, NULL);
   os_timer_arm(&commsTimeout, 500, 0);
 }
 
-void arduinoConnect(){
+void ICACHE_FLASH_ATTR arduinoConnect(){
   if(arduinoUpdateState.state == CONNECT){
     // Send the "connect" command
     // '0 '
@@ -41,7 +41,7 @@ void arduinoConnect(){
   }
 }
 
-void arduinoLoadAddress(int addr){
+void ICACHE_FLASH_ATTR arduinoLoadAddress(int addr){
   // Send the "load address" command
   // U
   // addr >> 1 & 0xFF
@@ -54,7 +54,7 @@ void arduinoLoadAddress(int addr){
   setTimeout();
 }
 
-void arduinoProgramPage(uint8 * data, int len){
+void ICACHE_FLASH_ATTR arduinoProgramPage(uint8 * data, int len){
   // Send the "program page" command
   // d
   // len & 0xFF
@@ -71,7 +71,7 @@ void arduinoProgramPage(uint8 * data, int len){
   setTimeout();
 }
 
-void arduinoReadPage(int len){
+void ICACHE_FLASH_ATTR arduinoReadPage(int len){
   // Send the "read page" command
   // t
   // len & 0xFF
@@ -84,7 +84,7 @@ void arduinoReadPage(int len){
   setTimeout();
 }
 
-void arduinoReset(){
+void ICACHE_FLASH_ATTR arduinoReset(){
   // Causes a delay to reset the Arduino
   for(int i=0; i<50; i++){
     gpio_output_set(0, 1, 1, 0);
@@ -92,7 +92,7 @@ void arduinoReset(){
   gpio_output_set(1, 0, 1, 0);
 }
 
-void arduinoUpdate(){
+void ICACHE_FLASH_ATTR arduinoUpdate(){
   int addr;
   switch (arduinoUpdateState.state){
   case CONNECT:
@@ -123,7 +123,7 @@ void arduinoUpdate(){
   }
 }
 
-bool arduinoBeginUpdate(){
+bool ICACHE_FLASH_ATTR arduinoBeginUpdate(){
   if(arduinoUpdateState.state == IDLE){
     arduinoUpdateState.page = 0;
     arduinoUpdateState.state = CONNECT;
@@ -138,24 +138,24 @@ bool arduinoBeginUpdate(){
   }
 }
 
-char arduinoGetStatus(){
+char ICACHE_FLASH_ATTR arduinoGetStatus(){
   // Return how many pages have been sent so far to track progress
   return 0;
 }
 
-bool arduinoUpdating(){
+bool ICACHE_FLASH_ATTR arduinoUpdating(){
   return arduinoUpdateState.state != IDLE;
 }
 
-int arduinoPagesFlashed(){
+int ICACHE_FLASH_ATTR arduinoPagesFlashed(){
   return arduinoUpdateState.page;
 }
 
-bool okMsg(){
+bool ICACHE_FLASH_ATTR okMsg(){
   return (rcvBufferCounter >= 2 && rcvBuffer[0] == 20 && rcvBuffer[1] == 16);
 }
 
-void arduinoHandleData(uint8 incoming){
+void ICACHE_FLASH_ATTR arduinoHandleData(uint8 incoming){
   rcvBuffer[rcvBufferCounter++] = incoming;
   // check if we have an appropriate response
   switch (arduinoUpdateState.state){
