@@ -118,7 +118,7 @@ static void ICACHE_FLASH_ATTR wsParseHeader(char *h, WsConnData *conn) {
 	}
 }
 
-bool parseWSFrame(char* out, char* frame){
+bool parseWSFrame(char* out, char* frame, unsigned short len, WsConnData *conn){
   bool fin = false;
   uint8_t opcode = 0;
   bool mask_set = false;
@@ -139,10 +139,13 @@ bool parseWSFrame(char* out, char* frame){
   mask_set = frame[1] >> 7;
   length = frame[1] & 0x7F;
   
-  if(strlen(frame) >= (length + 6)){
+  if(len >= (length + 6)){
     if(length < 125){
       if(opcode == 0x08){
         // The socket is closing
+        os_printf("Disconnected websocket\r\n");
+        if (conn==NULL) return false;
+        conn->conn=NULL;
         return false;
       }
       //extract the mask
@@ -172,7 +175,7 @@ static void ICACHE_FLASH_ATTR wsRecvCb(void *arg, char *data, unsigned short len
 	
   if(conn->connType == WEBSOCKET){
     // decode the websocket frame and send data
-    if(parseWSFrame(wsBuff, data)){
+    if(parseWSFrame(wsBuff, data, len, conn)){
       handlerCb(0, wsBuff);
     }
   }else if(conn->connType == RAW){
@@ -285,10 +288,6 @@ void ICACHE_FLASH_ATTR wsSend(int conn_no, char *msg){
   }else{
     espconn_sent(connData[conn_no].conn, (uint8 *)msg, strlen(msg));
   }
-}
-
-void ICACHE_FLASH_ATTR recvTask(void){
-  
 }
 
 void ICACHE_FLASH_ATTR wsInit(int port, void *handler){
