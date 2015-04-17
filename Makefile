@@ -145,7 +145,7 @@ cleanweb:
 	$(Q) rm webpages.espfs
 
 webpages.espfs: html/ html/wifi/ mkespfsimage/mkespfsimage cleanweb
-	cd html; find . | ../mkespfsimage/mkespfsimage > ../webpages.espfs; cd ..
+	cd html; find . ! -name ".DS_Store" | ../mkespfsimage/mkespfsimage > ../webpages.espfs; cd ..
 
 mkespfsimage/mkespfsimage: mkespfsimage/
 	make -C mkespfsimage
