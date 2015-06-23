@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Mirobot Control</title>
+  <meta name="viewport" content="width=900, user-scalable=no">
+  <style>
+    body {
+      background-color: #fff;
+      font-family: sans-serif;
+    }
+    a{
+      color:#333;
+    }
+    #configure{ display:none}
+    #menu li{
+      display:inline-block;
+      list-style-type:none;
+      border:1px solid #888;
+      padding:10px;
+      background-color: #EEE;
+    }
+    #menu li a{
+      text-decoration:none;
+      color:#333;
+    }
+    #menu li.selected{
+      background-color:#FFF;
+    }
+    .editor{
+      display:block;
+      min-width:600px;
+    }
+    .editor ol{
+      list-style-type:none;
+      padding:0;
+      margin:0;
+    }
+    .editor .left{
+      width:300px;
+      float: left;
+    }
+    .editor .functionList{
+      vertical-align:top;
+      background:#EEE;
+      border:1px solid #888;
+      padding:10px;
+    }
+    .editor input[type='number']{
+      width:50px;
+    }
+    .editor .container h2{
+      background:#888;
+      padding:5px;
+      margin:0;
+      color:#FFF;
+    }
+    .editor .right{
+      border:1px solid #888;
+      margin-left:310px;
+      max-width:600px;
+      position:relative;
+    }
+    .editor .buttons{
+      position:absolute;
+      padding:0;
+      bottom:0;
+      width:100%;
+    }
+    .editor .programWrapper{
+      overflow:auto;
+    }
+    .editor .buttons button{
+      color:#FFF;
+      font-size:1.5em;
+      padding:5px;
+      height:40px;
+      vertical-align:top;
+      border:none;
+      width:33.33%;
+      font-weight:bold;
+      margin:0;
+      background:#BBB;
+    }
+    .editor .buttons button:focus{
+      outline-width: 0;
+    }
+    .editor .buttons .run{
+      background-color:#33D121;
+    }
+    .editor .buttons .run:hover{
+      background-color:#2CAD1D;
+    }
+    .editor .buttons .run:active{
+      background-color:#218216;
+    }
+    .editor .buttons .stop{
+      background-color:#888;
+    }
+    .editor .buttons .stop:hover{
+      background-color:#444;
+    }
+    .editor .buttons .stop:active{
+      background-color:#000;
+    }
+    .editor .buttons .clear{
+      background-color:#AAA;
+    }
+    .editor .buttons .clear:hover{
+      background-color:#777;
+    }
+    .editor .buttons .clear:active{
+      background-color:#444;
+    }
+    .editor .buttons .disabled{
+      background-color:#BBB;
+    }
+    .editor .buttons .disabled:hover{
+      background-color:#BBB;
+    }
+    .editor .program{
+      overflow:hidden;
+      min-width:300px;
+      min-height:100%;
+      vertical-align:top;
+      padding:10px;
+    }
+    .editor .program .hint{
+      text-align:center;
+      border:1px dashed #888;
+      display:block;
+      padding:10px;
+      min-height:1.5em;
+      color:#CCC;
+    }
+    .editor .functionList .hint{
+      display:none;
+    }
+    .editor .programWrapper{
+      overflow:auto;
+    }
+    .editor .function{
+      background:#FFF;
+      border:1px solid #888;
+      padding:10px;
+      min-height:1.5em;
+    }
+    .editor .program .function.running{
+      background:#F00;
+    }
+    .editor .functionList .function{
+      -webkit-box-shadow: 12px 12px 12px -5px rgba(0,0,0,0.5);
+      -moz-box-shadow: 12px 12px 12px -5px rgba(0,0,0,0.5);
+      box-shadow: 12px 12px 12px -5px rgba(0,0,0,0.5);
+      margin:0 0 10px;
+    }
+    .editor .fn-repeat ol{
+      min-height:1.5em;
+      border:1px solid #888;
+    }
+    .editor .dragged {
+      position: absolute;
+      opacity: 0.5;
+      z-index: 2000;
+    }
+    .editor .placeholder {
+      position: relative;
+      border:1px dashed #888;
+      display:block;
+      padding:10px;
+      min-height:1.5em;
+    }
+    .editor ol.program li.function.active{
+      background-color:#0F0;
+    }
+    body.dragging, body.dragging * {
+      cursor: move !important;
+    }
+    .connState{
+      position:absolute;
+      right:10px;
+      color:#D12121;
+    }
+    .connState.connected{
+      color:#33D121;
+    }
+    #miroConnState{
+      top:50px;
+    }
+    #wifiConnState{
+      top:25px;
+    }
+    #wifiConnState.connected{
+      text-decoration:none;
+    }
+    #wifiConnState.connected:hover{
+      text-decoration:underline;
+    }
+    #header{
+      padding:10px 0;
+      margin:0 0 10px;
+      border-bottom: 1px solid #BBB;
+    }
+    
+    .modal{
+      position:absolute;
+      top:0;
+      left:0;
+    }
+    .modal{
+      background-color:rgba(0,0,0,0.5);
+      width:100%;
+      height:100%;
+      text-align:center;
+      z-index:100000;
+    }
+    .modal .content{
+      background-color:#FFF;
+      width:400px;
+      margin:30px auto;
+      padding:10px;
+      border:5px solid #999;
+      text-align:center;
+    }
+    #wifiConfig .content input[type=text],#wifiConfig .content input[type=password]{
+      width:200px;
+    }
+    #wifiConfig .content td{
+      text-align:right;
+      padding:4px;
+    }
+    #wifiConfig .content td.left{
+      text-align:left;
+    }
+    #wifiConfig iframe{
+      width:400px;
+      height:500px;
+      border:none;
+    }
+    #version{
+      font-size:75%;
+      color:#CCC;
+      position:absolute;
+      bottom:5px;
+      right:10px;
+    }
+    #version a{
+      color:#888;
+    }
+    .editor .extra{
+      padding:10px;
+    }
+    .editor .extra button{
+      display:block;
+      margin:0 0 10px 0;
+      background: #FFF;
+      border: 1px #888 solid;
+      padding:5px;
+      min-width:160px;
+      text-align:center;
+      min-height:3em;
+    }
+    .editor .extra button:active{
+      background: #DDD;
+    }
+    .editor .extra button:hover{
+      background: #EEE;
+    }
+    .editor .extra button:focus{
+      outline: 0;
+    }
+    #configIframe{
+      border:none;
+      display:hidden;
+      position:absolute;
+      top:0;
+      left:0;
+      width:1px;
+      height:1px;
+    }
+  </style>
+</head>
+<body>
+  <div id="header">
+    <img src="data:image/png;base64,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">
+    <a href="#" id="wifiConnState" class="connState"></a>
+    <span id="miroConnState" class="connState"></span>
+    <span id="version"></span>
+  </div>
+  <div id="wifiConfig" class="modal" style="display:none">
+    <div class="content" id="wifiContent">
+      <iframe src="" id="wifiFrame"></iframe>
+    </div>
+  </div>
+  <div id="wsMsg" class="modal" style="display:none">
+    <div class="content">
+      <h3>Your browser does not support Mirobot</h3>
+      <p>Mirobot uses a feature called WebSockets in order to control it from your browser.</p>
+      <p>Unfortunately your web browser does not support this.</p>
+      <p>Any recent version of the major browsers should work without problems. If you're not sure what to use, <a href="https://www.google.com/chrome/browser/">Google Chrome</a> is a good start.</p>
+    </div>
+  </div>
+  <div id="code"></div>
+  <script>
+    var wirelessConfig = {"clientSSID":"%clientSSID%","wifiMode":"%wifiMode%","clientIp":"%clientIp%","clientGateway":"%clientGateway%","clientNetmask":"%clientNetmask%","clientDhcp":"%clientDhcp%","clientMac":"%clientMac%","clientConnected":"%clientConnected%","APAuth":"%APAuth%","APChannel":"%APChannel%","APSSID":"%APSSID%"}
+if(wirelessConfig.clientSSID.indexOf('clientSSID') > -1){
+  wirelessConfig = {"clientSSID":"foo","wifiMode":"3","clientIp":"192.168.1.100","clientGateway":"192.168.1.1","clientNetmask":"255.255.255.0","clientDhcp":"true","clientMac":"10:20:30:40:50:60","clientConnected":"true","APAuth":"0","APChannel":"6","APSSID":"Mirobot-abcd"};
+}
+ 
+  </script>
+  <script type="text/javascript" src="snack.js"></script>
+  <script type="text/javascript" src="mirobot.js"></script>
+  <script type="text/javascript" src="builder.js"></script>
+  <script type="text/javascript" src="snack.sortableList.js"></script>
+  <script type="text/javascript">
+
+    var $;
+    var has_remote_conn = true;
+    var remote_base = 'http://mirobot.io/assets/mirobot_js/';
+    var ui_version = '{{timestamp}}';
+    var hashConfig = {};
+    var mirobot;
+    if(ui_version === ('{{time' + 'stamp}}')){
+      ui_version = '20140723'; //So we can use the raw source for testing
+    }
+    
+    if(window.location.hash !== ''){
+      window.location.hash.replace('#', '').split('&').map(function(el){
+        var split = el.split('=');
+        hashConfig[split[0]] = split[1];
+      });
+    }
+    
+    var LoadScripts = function (_scripts, base_url, done) {
+        var scripts = [];
+        var x = 0;
+        var loopArray = function(_scripts, scripts) {
+          // call itself
+          loadScript(_scripts[x], scripts[x], base_url, function(){
+            // set x to next item
+            x++;
+            // any more items in array?
+            if(x < _scripts.length) {
+              loopArray(_scripts, scripts);   
+            }else{
+              done();
+            }
+          }); 
+        }
+        loopArray(_scripts, scripts);      
+    }
+
+    // load script function with callback to handle synchronicity 
+    var loadScript = function( src, script, base_url, callback, errback ){
+      var loaded = false;
+      var errored = false;
+      var timeout;
+      script = document.createElement('script');
+      var noload = function(err) {
+        // handling error when loading script
+        if(!loaded && !errored && errback){
+          errback();
+        }
+        errored = true;
+      }
+      script.onerror = noload
+      script.onload = function(){
+        loaded = true;
+        delete timeout;
+        callback();
+      }
+      script.src = base_url + src;
+      document.getElementsByTagName('head')[0].appendChild(script);
+      window.setTimeout(noload, 3000);
+    }
+    
+    // In case console logging kills the browser
+    if(typeof window.console === 'undefined'){ window.console = {log: function(){}}; }
+
+    var localApp = function(){
+      console.log('Loading local app');
+
+      has_remote_conn = false;
+      var latest_ui_version = undefined;
+      var configTimeout;
+
+      var mirobot_version = 'unknown';
+
+      var el = function(id){
+        return document.getElementById(id);
+      }
+
+      var hideModal = function(modal){
+        el(modal).style.display = 'none';
+        // unbind the event
+        document.body.onkeyup = undefined;
+      }
+
+      updateWirelessConfig = function(config){
+        wirelessConfig = config;
+      
+        var conn = el('wifiConnState');
+        if(wirelessConfig.clientConnected === 'false'){
+          conn.innerHTML = '&#10007; Configure WiFi';
+          conn.className = 'connState';
+          checkConfig(10000);
+        }else{
+          conn.innerHTML = '&#10003; Connected to WiFi';
+          conn.className = 'connState connected';
+          checkConfig(60000);
+        }
+      }
+
+      window.hideWiFiConfig = function(){
+        hideModal('wifiConfig');
+        checkConfig(10000);
+      }
+
+      var escEvent = function(event, modal){
+        if (event.which === 27) { // 27 == "esc"
+          // hide the dialog
+          hideModal(modal);
+        }
+      }
+    
+      var configureWifi = function(e){
+        e.preventDefault();
+        el('wifiFrame').src = '/wifi/index.html';
+        el('wifiConfig').style.display = 'block';
+        el('wifiContent').onclick = function(e){e.stopPropagation()};
+        el('wifiConfig').onclick = function(){hideModal('wifiConfig');checkConfig();};
+        document.body.onkeyup = function(e){ escEvent(e, 'wifiConfig');checkConfig();};
+      }
+    
+      var setVersions = function(){
+        var versionString = "Firmware version: " + mirobot_version + " | UI version: " + ui_version;
+        if(latest_ui_version && latest_ui_version > ui_version){
+          versionString += ' <a href="http://mirobot.io/build/firmware_update/" target="_blank">Upgrade</a>';
+        }
+        el('version').innerHTML = versionString;
+      }
+
+      var getVersion = function(){
+        mirobot.version(function(state, msg){
+          if(msg.msg){
+            mirobot_version = msg.msg;
+          }
+          setVersions();
+        });
+      }
+    
+      var checkUIVersion = function(){
+        if(has_remote_conn){
+          var xhr = new XMLHttpRequest();
+          
+          xhr.onreadystatechange = function(){
+            if(xhr.readyState === 4 && xhr.status === 200){
+              var res = JSON.parse(xhr.response);
+              for(var i = 0; i< res.length; i++){
+                if(!res[i].prerelease){
+                  latest_ui_version = res[i].tag_name;
+                  break;
+                }
+              }
+              setVersions();
+            }
+          }
+          
+          xhr.open('GET', 'https://api.github.com/repos/bjpirt/mirobot-ui/releases', true);
+          xhr.send();
+        }
+      }
+      
+      var initProgram = function(){
+        var host = hashConfig['m'] || window.location.hostname;
+        mirobot = new Mirobot('ws://' + host + ':8899/websocket');
+        var builder = new Builder($('#code'), mirobot);
+
+        var mirobotHandler = function(state){
+          var conn = $('#miroConnState');
+          if(state === 'connected'){
+            if(mirobot_version === 'unknown'){
+              window.setTimeout(getVersion, 1000);
+            }
+            conn[0].innerHTML = '&#10003; Connected to Mirobot';
+            conn.addClass('connected');
+          }else if(state === 'disconnected'){
+            conn[0].innerHTML = '&#10007; Reconnecting to Mirobot';
+            conn.removeClass('connected');
+          }
+        }
+        mirobot.addListener(mirobotHandler);
+      }
+
+      var checkConfig = function(delay){
+        var fn = function(){
+          var xhr = new XMLHttpRequest();
+          xhr.open('get', '/wifi/settings.json', true);
+          xhr.onreadystatechange = function() {
+            var data;
+            if (xhr.readyState == 4 && xhr.status == 200) {
+              updateWirelessConfig(JSON.parse(xhr.responseText));
+            }
+          };
+          xhr.send();
+        }
+        if(delay){
+          if(configTimeout) window.clearTimeout(configTimeout);
+          configTimeout = window.setTimeout(fn, delay);
+        }else{
+          fn();
+        }
+      }
+
+      $ = snack.wrap;
+      initProgram();
+      updateWirelessConfig(wirelessConfig);
+      el('wifiConnState').onclick = configureWifi;
+      setVersions();
+
+      if(hashConfig['l'] !== 'true' && window.location.hostname != '10.10.100.254'){
+        // Useful in the future for adding functionality without upgrades
+        loadScript('remote.js', undefined, remote_base, function(){
+          has_remote_conn = true;
+          checkUIVersion()
+        });
+      }
+    }
+
+    if(typeof(WebSocket) !== "undefined"){
+      window.addEventListener('load', localApp);
+    }else{
+      document.getElementById('wsMsg').style.display = 'block';
+    }
+
+  </script>
+</body>
+</html>

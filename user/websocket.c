@@ -57,6 +57,7 @@ void ICACHE_FLASH_ATTR wsSendUpgrade(WsConnData *conn) {
 	uint8 *hash;
   char b64Result[31];
   sha1nfo s;
+	int len;
 
   strncpy(webSocketKey, conn->key, 24);
   
@@ -68,10 +69,9 @@ void ICACHE_FLASH_ATTR wsSendUpgrade(WsConnData *conn) {
   // Base64 encode it
   base64_encode(20, (unsigned char *)hash, 30, b64Result);
   b64Result[30] = 0;
-
-	int l;
-  l=os_sprintf(temp_buff, "HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: %s\r\n\r\n", b64Result);
-  espconn_sent(conn->conn, (uint8 *)temp_buff, l);
+  
+  len=os_sprintf(temp_buff, "HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: %s\r\n\r\n", b64Result);
+  espconn_sent(conn->conn, (uint8 *)temp_buff, len);
 }
 
 //Send a http header.

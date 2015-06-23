@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html><head><title>WiFi connection</title>
+<style>
+body {
+	background-color: #FFF;
+	font-family: sans-serif;
+}
+label{
+  display:block;
+  margin:10px 0;
+}
+.info{
+  margin:15px 0;
+  font-size:85%%;
+  color:#999;
+}
+.info p{margin:6px 0}
+h1{font-size:1.25em}
+h1 input{margin:0 10px 0 0}
+#message{
+  margin:10px 0;
+}
+</style>
+<script type="text/javascript">
+var settings = {"clientSSID":"%clientSSID%","wifiMode":"%wifiMode%","clientIp":"%clientIp%","clientGateway":"%clientGateway%","clientNetmask":"%clientNetmask%","clientDhcp":"%clientDhcp%","clientMac":"%clientMac%","clientConnected":"%clientConnected%","APAuth":"%APAuth%","APChannel":"%APChannel%","APSSID":"%APSSID%"}
+if(settings.clientSSID.indexOf('clientSSID') > -1){
+  settings = {"clientSSID":"foo","wifiMode":"3","clientIp":"192.168.1.100","clientGateway":"192.168.1.1","clientNetmask":"255.255.255.0","clientDhcp":"true","clientMac":"10:20:30:40:50:60","clientConnected":"true","APAuth":"0","APChannel":"6","APSSID":"Mirobot-abcd"};
+}
+// Snipped from 140medley
+var xhrObject=function(a){for(a=0;a<4;a++)try{return a?new ActiveXObject(["Msxml2","Msxml3","Microsoft"][a]+".XMLHTTP"):new XMLHttpRequest}catch(b){}};
+var aps = [];
+
+function scanAPs() {
+	var xhr = xhrObject();
+	xhr.open("GET", "wifiscan.cgi");
+	xhr.onreadystatechange=function() {
+		if (xhr.readyState==4 && xhr.status>=200 && xhr.status<300) {
+			var data=JSON.parse(xhr.responseText);
+			if (data.result.inProgress==="0" && data.result.APs.length>1) {
+			  aps = [];
+				for (var i=0; i<data.result.APs.length; i++) {
+					if (data.result.APs[i].essid=="" && data.result.APs[i].rssi==0) continue;
+					aps.push(data.result.APs[i]);
+				}
+				aps.sort(function(a, b){ return (a.rssi < b.rssi) ? 1 : ((b.rssi < a.rssi) ? -1 : 0 );});
+				setAPSelect(aps);
+				window.setTimeout(scanAPs, 20000);
+			} else {
+				window.setTimeout(scanAPs, 1000);
+			}
+		}
+	}
+	xhr.send();
+}
+
+var el = function(e){return document.getElementById(e)};
+
+var getAP = function(ap){
+  for(var i = 0; i< aps.length; i++){
+    if(aps[i].essid === ap) return aps[i];
+  }
+  return null;
+}
+
+var showHide = function(){
+  el('clientDetails').style.display = (document.getElementById('wifiClientEnabled').checked ? 'block' : 'none');
+  el('APDetails').style.display = (document.getElementById('wifiAPEnabled').checked ? 'block' : 'none');
+  el('APAuthPass').style.display = (document.getElementById('APAuth').value === '0' ?  'none' : 'block');
+  var ap = getAP(el('clientSSID').value);
+  el('clientPasswdInput').style.display = (!ap || ap.enc > 0 ?  'block' : 'none');
+  el('APChannelInput').style.display = (document.getElementById('wifiClientEnabled').checked ?  'none' : 'block');
+  
+  /*
+  var disabled = document.getElementById('clientDHCP').checked;
+  var inputs = document.querySelectorAll('#clientDHCPSettings input');
+  for(var i = 0; i< inputs.length; i++){
+    inputs[i].disabled = disabled;
+  }
+  el('clientDHCPSettings').style.display = (document.getElementById('clientDHCP').checked ?  'none' : 'block');
+  */
+}
+
+setAPSelect = function(aps){
+  var foundCurrent = false;
+  var menu;
+  for(var i = 0; i< aps.length; i++){
+    menu += "<option value=" + aps[i].essid
+    if(aps[i].essid === settings.clientSSID){
+      foundCurrent = true;
+      menu += ' selected="selected"'
+    }
+    menu += ">" +aps[i].essid + "</option>"
+  }
+  if(!foundCurrent){
+    menu = '<option value=' + settings.clientSSID + ' selected="selected">' +settings.clientSSID + ' (not currently visible)</option>' + menu;
+  }
+  menu = '<option>Select the WiFi Access Point</option>' + menu;
+  el('clientSSID').innerHTML = menu;
+  showHide();
+}
+
+var setupForm = function(){
+  // set the mode
+  el('wifiClientEnabled').checked = !!(settings.wifiMode & 1);
+  el('wifiClientEnabled').onchange = showHide;
+  el('clientPasswdInput').style.display = 'none';
+  el('clientSSID').onchange = showHide;
+  el('wifiAPEnabled').checked = !!(settings.wifiMode & 2);
+  el('wifiAPEnabled').onchange = showHide;
+  //el('clientDHCP').checked = (settings.clientDhcp == "true");
+  //el('clientDHCP').onchange = showHide;
+  //el('clientIp').value = settings.clientIp;
+  //el('clientNetmask').value = settings.clientNetmask;
+  //el('clientGateway').value = settings.clientGateway;
+  el('clientMac').innerHTML = settings.clientMac;
+  el('clientIpVal').innerHTML = settings.clientIp;
+  el('APSSID').value = settings.APSSID;
+  el('submit').onclick = sendForm;
+  var html;
+  for(var i = 1; i< 11; i++){
+    html += '<option value="' + i + '"';
+    if(i === parseInt(settings.APChannel)) html += ' selected="selected"';
+    html += '>' + i + '</option>';
+  }
+  el('APChannel').innerHTML = html;
+  var encOptions = ['None', 'WEP', 'WPA PSK', 'WPA2 PSK', 'WPA / WPA2 PSK']
+  html = '';
+  for(var i = 0; i< encOptions.length; i++){
+    html += '<option value="' + i + '"';
+    if(i === parseInt(settings.APAuth)) html += ' selected="selected"';
+    html += '>' + encOptions[i] + '</option>';
+  }
+  el('APAuth').innerHTML = html;
+  el('APAuth').onchange = showHide;
+  showHide();
+}
+
+var getWifiMode = function(){
+  if(el('wifiAPEnabled').checked && el('wifiClientEnabled').checked){
+    return 3;
+  }else if(el('wifiAPEnabled').checked){
+    return 2;
+  }else if(el('wifiClientEnabled').checked){
+    return 1;
+  }else{
+    return 0;
+  }
+}
+
+var makeVars = function(){
+  var output = {};
+  if(getWifiMode() !== parseInt(settings.wifiMode)) output.wifiMode = getWifiMode();
+  if(getWifiMode() & 1 > 0){
+    // Send the wifi client config
+    output.clientSSID = el('clientSSID').value;
+    var ap = getAP(output.clientSSID);
+    if(ap && ap.enc > 0 && el('clientPasswd').value === ''){
+      msg("Please enter a password to join the " + ap.essid + ' network');
+      return null;
+    }
+    if(el('clientPasswd').value !== '') output.clientPasswd = el('clientPasswd').value;
+  }
+  if(getWifiMode() & 2 > 0){
+    // Send the access point settings
+    output.APSSID = el('APSSID').value
+    // if the client is disabled, send the channel
+    if(output.wifiMode & 1 == 0) output.APChannel = el('APChannel').value;
+  }
+  // filter out the settings that haven't changed
+  for(var k in output){
+    if(output[k] === settings[k]){
+      delete output[k];
+    }
+  }
+  console.log(output);
+  return output;
+}
+
+var sendForm = function(){
+	var xhr = xhrObject();
+  var urlEncodedData = "";
+  var urlEncodedDataPairs = [];
+  
+  var data = makeVars();
+  if(!data) return;
+  // We turn the data object into an array of URL encoded key value pairs.
+  for(var name in data) {
+    urlEncodedDataPairs.push(encodeURIComponent(name) + '=' + encodeURIComponent(data[name]));
+  }
+  if(urlEncodedDataPairs.length === 0) return;
+  urlEncodedData = urlEncodedDataPairs.join('&').replace(/%%20/g, '+');
+  xhr.onreadystatechange=function() {
+		if (xhr.readyState==4){
+		  if(xhr.status>=200 && xhr.status<300) {
+        msg('Configuration saved');
+		  }else{
+        msg('Error saving configuration');
+		  }
+		}
+	}
+  // setup our request
+  xhr.open('POST', 'settings.cgi');
+  // add the required HTTP header to handle a form data POST request
+  xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+  // send the data.
+  xhr.send(urlEncodedData);
+}
+
+var msg = function(m){
+  el('message').innerHTML = m;
+}
+
+window.onload=function(e) {
+  setupForm();
+	scanAPs();
+};
+</script>
+</head>
+<body>
+  <h1><input type="checkbox" id="wifiClientEnabled">WiFi Client</h1>
+  <div id="clientDetails">
+    <select id="clientSSID">
+      <option>Looking for Access Points...</option>
+    </select>
+    <label id="clientPasswdInput">Password: <input type="password" id="clientPasswd"></label>
+    <!--
+    <label><input type="checkbox" id="clientDHCP">Use DHCP</label>
+    <div id="clientDHCPSettings">
+      <label>IP Address: <input type="text" id="clientIp"></label>
+      <label>Netmask: <input type="text" id="clientNetmask"></label>
+      <label>Gateway: <input type="text" id="clientGateway"></label>
+    </div>
+    -->
+    <div class="info">
+      <p>IP Address: <span id="clientIpVal"></span></p>
+      <p>MAC Address: <span id="clientMac"></span></p>
+    </div>
+  </div>
+  <h1><input type="checkbox" id="wifiAPEnabled">WiFi Access Point</h1>
+  <div id="APDetails">
+    <label>Access Point Name: <input type="text" id="APSSID"></label>
+    <label id="APChannelInput">Channel: <select id="APChannel"></select>
+    </label>
+    <label>Encryption: <select id="APAuth"></select></label>
+    <label id="APAuthPass">Password: <input type="password" id="APAuthPassword"></label>
+  </div>
+  <button id="submit">Save Settings</button>
+  <div id="message"></div>
+
+</body>
+</html>

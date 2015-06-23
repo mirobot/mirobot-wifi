@@ -84,7 +84,7 @@ void base64encode(const unsigned char in[3], unsigned char out[4], int count) {
 
 int base64_encode(size_t in_len, const unsigned char *in, size_t out_len, char *out) {
 	unsigned ii, io;
-	uint_least32_t v;
+	uint32_t v;
 	unsigned rem;
 
 	for(io=0,ii=0,v=0,rem=0;ii<in_len;ii++) {

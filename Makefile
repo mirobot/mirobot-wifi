@@ -1,11 +1,9 @@
-# tnx to mamalala
-# Changelog
-# Changed the variables to include the header file directory
-# Added global var for the XTENSA tool root
-#
-# This make file still needs some work.
-#
-#
+#Position and maximum length of espfs in flash memory. This can be undefined. In this case 
+#the webpages will be linked in into the executable file. If this is defined, please do a 
+#'make htmlflash' to flash the espfs into the ESPs memory.
+ESPFS_POS = 0x12000
+ESPFS_SIZE = 0x2E000
+
 # Output directors to store intermediate compiled files
 # relative to the project directory
 BUILD_BASE	= build
@@ -19,29 +17,29 @@ XTENSA_TOOLS_ROOT ?=
 SDK_BASE	?= /opt/Espressif/ESP8266_SDK
 
 #Esptool.py path and port
-ESPTOOL		?= esptool
-ESPTOOLPY		?= esptool.py
+ESPTOOL		?= esptool.py
+ESPTOOL2	?= esptool2
 ESPPORT		?= /dev/ttyUSB0
 #ESPDELAY indicates seconds to wait between flashing the two binary images
 ESPDELAY	?= 3
-ESPBAUD		?= 230400
+ESPBAUD		?= 460800
+
 
 # name for the target project
 TARGET		= httpd
 
 # which modules (subdirectories) of the project to include in compiling
-#MODULES		= driver user lwip/api lwip/app lwip/core lwip/core/ipv4 lwip/netif
 MODULES		= driver user
-EXTRA_INCDIR	= include \
-		. \
-		lib/heatshrink/
+EXTRA_INCDIR	= include libesphttpd/include libesphttpd/core
 
 # libraries used in this project, mainly provided by the SDK
 LIBS		= c gcc hal phy pp net80211 wpa main lwip
+#Add in esphttpd lib
+LIBS += esphttpd
 
 # compiler flags using during compilation of source files
 CFLAGS		= -Os -ggdb -std=c99 -Werror -Wpointer-arith -Wundef -Wall -Wl,-EL -fno-inline-functions \
-		-nostdlib -mlongcalls -mtext-section-literals  -D__ets__ -DICACHE_FLASH \
+		-nostdlib -mlongcalls -mtext-section-literals  -D__ets__ -DICACHE_FLASH -D_STDINT_H \
 		-Wno-address
 
 # linker flags used to generate the main object file
@@ -53,20 +51,12 @@ LD_SCRIPT	= eagle.app.v6.ld
 # various paths from the SDK used in this project
 SDK_LIBDIR	= lib
 SDK_LDDIR	= ld
-SDK_INCDIR	= include include/json
-
-# we create two different files for uploading into the flash
-# these are the names and options to generate them
-FW_FILE_1	= 0x00000
-FW_FILE_1_ARGS	= -bo $@ -bs .text -bs .data -bs .rodata -bc -ec
-FW_FILE_2	= 0x40000
-FW_FILE_2_ARGS	= -es .irom0.text $@ -ec
+SDK_INCDIR	= include
 
 # select which tools to use as compiler, librarian and linker
 CC		:= $(XTENSA_TOOLS_ROOT)xtensa-lx106-elf-gcc
 AR		:= $(XTENSA_TOOLS_ROOT)xtensa-lx106-elf-ar
 LD		:= $(XTENSA_TOOLS_ROOT)xtensa-lx106-elf-gcc
-
 
 
 ####
@@ -90,9 +80,6 @@ INCDIR	:= $(addprefix -I,$(SRC_DIR))
 EXTRA_INCDIR	:= $(addprefix -I,$(EXTRA_INCDIR))
 MODULE_INCDIR	:= $(addsuffix /include,$(INCDIR))
 
-FW_FILE_1	:= $(addprefix $(FW_BASE)/,$(FW_FILE_1).bin)
-FW_FILE_2	:= $(addprefix $(FW_BASE)/,$(FW_FILE_2).bin)
-
 V ?= $(VERBOSE)
 ifeq ("$(V)","1")
 Q :=
@@ -100,6 +87,22 @@ vecho := @true
 else
 Q := @
 vecho := @echo
+endif
+
+ifeq ("$(GZIP_COMPRESSION)","yes")
+CFLAGS		+= -DGZIP_COMPRESSION
+endif
+
+ifeq ("$(USE_HEATSHRINK)","yes")
+CFLAGS		+= -DESPFS_HEATSHRINK
+endif
+
+ifeq ("$(ESPFS_POS)","")
+#No hardcoded espfs position: link it in with the binaries.
+LIBS += -lwebpages-espfs
+else
+#Hardcoded espfs location: Pass espfs position to rest of code
+CFLAGS += -DESPFS_POS=$(ESPFS_POS) -DESPFS_SIZE=$(ESPFS_SIZE)
 endif
 
 vpath %.c $(SRC_DIR)
@@ -110,61 +113,62 @@ $1/%.o: %.c
 	$(Q) $(CC) $(INCDIR) $(MODULE_INCDIR) $(EXTRA_INCDIR) $(SDK_INCDIR) $(CFLAGS)  -c $$< -o $$@
 endef
 
-.PHONY: all checkdirs clean
+.PHONY: all checkdirs clean libesphttpd
 
-all: checkdirs $(TARGET_OUT) $(FW_FILE_1) $(FW_FILE_2)
+all: checkdirs $(TARGET_OUT) $(FW_BASE)
 
-$(FW_FILE_1): $(TARGET_OUT) firmware
-	$(vecho) "FW $@"
-	$(Q) $(ESPTOOL) -eo $(TARGET_OUT) $(FW_FILE_1_ARGS)
+libesphttpd/Makefile:
+	$(Q) echo "No libesphttpd submodule found. Using git to fetch it..."
+	$(Q) git submodule init
+	$(Q) git submodule update
 
-$(FW_FILE_2): $(TARGET_OUT) firmware
-	$(vecho) "FW $@"
-	$(Q) $(ESPTOOL) -eo $(TARGET_OUT) $(FW_FILE_2_ARGS)
+libesphttpd: libesphttpd/Makefile
+	$(Q) make -C libesphttpd
+
+rboot:
+	$(Q) make -C rboot
 
 $(TARGET_OUT): $(APP_AR)
 	$(vecho) "LD $@"
-	$(Q) $(LD) -L$(SDK_LIBDIR) $(LD_SCRIPT) $(LDFLAGS) -Wl,--start-group $(LIBS) $(APP_AR) -Wl,--end-group -o $@
+	$(Q) $(LD) -Llibesphttpd -L$(SDK_LIBDIR) -Tld/rom0.ld $(LDFLAGS) -Wl,--start-group $(LIBS) $(APP_AR) -Wl,--end-group -o $(BUILD_BASE)/mirobot.rom0.out
+	$(Q) $(LD) -Llibesphttpd -L$(SDK_LIBDIR) -Tld/rom1.ld $(LDFLAGS) -Wl,--start-group $(LIBS) $(APP_AR) -Wl,--end-group -o $(BUILD_BASE)/mirobot.rom1.out
 
-$(APP_AR): $(OBJ)
+$(FW_BASE): $(TARGET_OUT) rboot
+	$(vecho) "FW $@"
+	$(Q) mkdir -p $@
+	$(Q) cp libesphttpd/webpages.espfs firmware
+	$(Q) cp rboot/firmware/rboot.bin firmware/rboot.bin
+	$(Q) $(ESPTOOL2) -quiet -bin -boot2 build/mirobot.rom0.out firmware/mirobot.rom0.bin .text .data .rodata
+	$(Q) $(ESPTOOL2) -quiet -bin -boot2 build/mirobot.rom1.out firmware/mirobot.rom1.bin .text .data .rodata
+
+$(APP_AR):  libesphttpd $(OBJ)
 	$(vecho) "AR $@"
-	$(Q) $(AR) cru $@ $^
+	$(Q) $(AR) cru $@ $(OBJ)
 
-checkdirs: $(BUILD_DIR) $(FW_BASE)
+checkdirs: $(BUILD_DIR)
 
 $(BUILD_DIR):
 	$(Q) mkdir -p $@
 
-firmware:
-	$(Q) mkdir -p $@
 
-flash: $(FW_FILE_1) $(FW_FILE_2)
-	$(Q) $(ESPTOOLPY) --port $(ESPPORT) --baud $(ESPBAUD) write_flash 0x00000 $(FW_FILE_1) 0x40000 $(FW_FILE_2)
+flash: $(TARGET_OUT) $(FW_BASE)
+	$(Q) $(ESPTOOL) --port $(ESPPORT) --baud $(ESPBAUD) write_flash 0x00000 $(FW_BASE)/0x00000.bin 0x40000 $(FW_BASE)/0x40000.bin
 
-cleanweb:
-	$(Q) rm webpages.espfs
+blankflash:
+	$(Q) $(ESPTOOL) --port $(ESPPORT) --baud $(ESPBAUD) write_flash 0x7E000 $(SDK_BASE)/bin/blank.bin
 
-webpages.espfs: html/ html/wifi/ mkespfsimage/mkespfsimage cleanweb
-	cd html; find . ! -name ".DS_Store" | ../mkespfsimage/mkespfsimage > ../webpages.espfs; cd ..
+htmlflash: libesphttpd
+	$(Q) if [ $$(stat -c '%s' libesphttpd/webpages.espfs) -gt $$(( $(ESPFS_SIZE) )) ]; then echo "webpages.espfs too big!"; false; fi
+	$(Q) $(ESPTOOL) --port $(ESPPORT) --baud $(ESPBAUD) write_flash $(ESPFS_POS) libesphttpd/webpages.espfs
 
-mkespfsimage/mkespfsimage: mkespfsimage/
-	make -C mkespfsimage
-
-flashweb: webpages.espfs
-	#if [ $$(stat -c '%s' webpages.espfs) -gt $$(( 0x2E000 )) ]; then echo "webpages.espfs too big!"; false; fi
-	$(Q) $(ESPTOOLPY) --port $(ESPPORT) --baud $(ESPBAUD) write_flash 0x12000 webpages.espfs
-
-flashall: webpages.espfs $(FW_FILE_1) $(FW_FILE_2)
-	$(Q) $(ESPTOOLPY) --port $(ESPPORT) --baud $(ESPBAUD) write_flash 0x00000 $(FW_FILE_1) 0x12000 webpages.espfs 0x40000 $(FW_FILE_2)
+flashall: libesphttpd $(TARGET_OUT) $(FW_BASE)
+	$(Q) $(ESPTOOL) --port $(ESPPORT) --baud $(ESPBAUD) write_flash 0x00000 firmware/0x00000.bin $(ESPFS_POS) libesphttpd/webpages.espfs 0x40000 firmware/0x40000.bin
 
 clean:
+	$(Q) make -C libesphttpd clean
 	$(Q) rm -f $(APP_AR)
 	$(Q) rm -f $(TARGET_OUT)
 	$(Q) find $(BUILD_BASE) -type f | xargs rm -f
-
-
-	$(Q) rm -f $(FW_FILE_1)
-	$(Q) rm -f $(FW_FILE_2)
 	$(Q) rm -rf $(FW_BASE)
 
 $(foreach bdir,$(BUILD_DIR),$(eval $(call compile-objects,$(bdir))))

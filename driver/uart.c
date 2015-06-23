@@ -14,8 +14,6 @@
 #include "osapi.h"
 #include "driver/uart.h"
 
-#include "driver/uart_register.h"
-
 // UartDev is defined and initialized in rom code.
 extern UartDevice    UartDev;
 //extern os_event_t    at_recvTaskQueue[at_recvTaskQueueLen];
