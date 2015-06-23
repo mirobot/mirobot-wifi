@@ -1,7 +1,7 @@
 Mirobot-WiFi
 ============
 
-This is the code that runs on the WiFi module on the V2 Mirobot. It is an ESP8266 based module (the ESP-01) and you should build this project using the esp-open-sdk toolchain (https://github.com/pfalcon/esp-open-sdk)
+This is the code that runs on the WiFi module on the V2 Mirobot. It is an ESP8266 based module (the ESP-12) and you should build this project using the esp-open-sdk toolchain (https://github.com/pfalcon/esp-open-sdk)
 
 It has a number of features:
  - A WebSocket to serial server
