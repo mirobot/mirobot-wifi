@@ -1,8 +1,8 @@
 #Position and maximum length of espfs in flash memory. This can be undefined. In this case 
 #the webpages will be linked in into the executable file. If this is defined, please do a 
 #'make htmlflash' to flash the espfs into the ESPs memory.
-ESPFS_POS = 0x12000
-ESPFS_SIZE = 0x2E000
+ESPFS_POS = 0x70000
+ESPFS_SIZE = 0x6000
 
 # Output directors to store intermediate compiled files
 # relative to the project directory
@@ -122,7 +122,10 @@ libesphttpd/Makefile:
 	$(Q) git submodule init
 	$(Q) git submodule update
 
-libesphttpd: libesphttpd/Makefile
+shrink_html:
+	./bin/shrink_html.rb
+
+libesphttpd: libesphttpd/Makefile shrink_html
 	$(Q) make -C libesphttpd
 
 rboot:
@@ -150,19 +153,20 @@ checkdirs: $(BUILD_DIR)
 $(BUILD_DIR):
 	$(Q) mkdir -p $@
 
-
 flash: $(TARGET_OUT) $(FW_BASE)
 	$(Q) $(ESPTOOL) --port $(ESPPORT) --baud $(ESPBAUD) write_flash 0x00000 $(FW_BASE)/0x00000.bin 0x40000 $(FW_BASE)/0x40000.bin
 
 blankflash:
 	$(Q) $(ESPTOOL) --port $(ESPPORT) --baud $(ESPBAUD) write_flash 0x7E000 $(SDK_BASE)/bin/blank.bin
 
-htmlflash: libesphttpd
-	$(Q) if [ $$(stat -c '%s' libesphttpd/webpages.espfs) -gt $$(( $(ESPFS_SIZE) )) ]; then echo "webpages.espfs too big!"; false; fi
+testwebsize: libesphttpd
+	$(Q) if [ $$(stat -f '%z' firmware/webpages.espfs) -gt $$(( $(ESPFS_SIZE) )) ]; then echo "webpages.espfs too big!"; false; fi
+
+htmlflash: libesphttpd testwebsize
 	$(Q) $(ESPTOOL) --port $(ESPPORT) --baud $(ESPBAUD) write_flash $(ESPFS_POS) libesphttpd/webpages.espfs
 
-flashall: libesphttpd $(TARGET_OUT) $(FW_BASE)
-	$(Q) $(ESPTOOL) --port $(ESPPORT) --baud $(ESPBAUD) write_flash 0x00000 firmware/0x00000.bin $(ESPFS_POS) libesphttpd/webpages.espfs 0x40000 firmware/0x40000.bin
+flashall: libesphttpd $(TARGET_OUT) $(FW_BASE) testwebsize
+	$(Q) $(ESPTOOL) --port $(ESPPORT) --baud $(ESPBAUD) write_flash 0x00000 firmware/rboot.bin 0x01000  $(SDK_BASE)/bin/blank.bin 0x2000 firmware/mirobot.rom0.bin $(ESPFS_POS) firmware/webpages.espfs
 
 clean:
 	$(Q) make -C libesphttpd clean
@@ -170,5 +174,6 @@ clean:
 	$(Q) rm -f $(TARGET_OUT)
 	$(Q) find $(BUILD_BASE) -type f | xargs rm -f
 	$(Q) rm -rf $(FW_BASE)
+	$(Q) rm -rf html
 
 $(foreach bdir,$(BUILD_DIR),$(eval $(call compile-objects,$(bdir))))
