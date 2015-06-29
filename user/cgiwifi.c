@@ -11,124 +11,14 @@ Cgi/template routines for the /wifi url.
  * ----------------------------------------------------------------------------
  */
 
-
 #include <string.h>
 #include <osapi.h>
 #include "user_interface.h"
 #include "mem.h"
 #include "httpd.h"
 #include "espmissingincludes.h"
+#include "version.h"
 
-//WiFi access point data
-typedef struct {
-	char ssid[32];
-	char rssi;
-	char enc;
-} ApData;
-
-//Scan result
-typedef struct {
-	char scanInProgress; //if 1, don't access the underlying stuff from the webpage.
-	ApData **apData;
-	int noAps;
-} ScanResultData;
-
-//Static scan status storage.
-ScanResultData cgiWifiAps;
-
-//Callback the code calls when a wlan ap scan is done. Basically stores the result in
-//the cgiWifiAps struct.
-void ICACHE_FLASH_ATTR wifiScanDoneCb(void *arg, STATUS status) {
-	int n;
-	struct bss_info *bss_link = (struct bss_info *)arg;
-	os_printf("wifiScanDoneCb %d\n", status);
-	if (status!=OK) {
-		cgiWifiAps.scanInProgress=0;
-		return;
-	}
-
-	//Clear prev ap data if needed.
-	if (cgiWifiAps.apData!=NULL) {
-		for (n=0; n<cgiWifiAps.noAps; n++) os_free(cgiWifiAps.apData[n]);
-		os_free(cgiWifiAps.apData);
-	}
-
-	//Count amount of access points found.
-	n=0;
-	while (bss_link != NULL) {
-		bss_link = bss_link->next.stqe_next;
-		n++;
-	}
-	//Allocate memory for access point data
-	cgiWifiAps.apData=(ApData **)os_malloc(sizeof(ApData *)*n);
-	cgiWifiAps.noAps=n;
-	os_printf("Scan done: found %d APs\n", n);
-
-	//Copy access point data to the static struct
-	n=0;
-	bss_link = (struct bss_info *)arg;
-	while (bss_link != NULL) {
-		if (n>=cgiWifiAps.noAps) {
-			//This means the bss_link changed under our nose. Shouldn't happen!
-			//Break because otherwise we will write in unallocated memory.
-			os_printf("Huh? I have more than the allocated %d aps!\n", cgiWifiAps.noAps);
-			break;
-		}
-		//Save the ap data.
-		cgiWifiAps.apData[n]=(ApData *)os_malloc(sizeof(ApData));
-		cgiWifiAps.apData[n]->rssi=bss_link->rssi;
-		cgiWifiAps.apData[n]->enc=bss_link->authmode;
-		strncpy(cgiWifiAps.apData[n]->ssid, (char*)bss_link->ssid, 32);
-
-		bss_link = bss_link->next.stqe_next;
-		n++;
-	}
-	//We're done.
-	cgiWifiAps.scanInProgress=0;
-}
-
-
-//Routine to start a WiFi access point scan.
-static void ICACHE_FLASH_ATTR wifiStartScan() {
-	if (cgiWifiAps.scanInProgress) return;
-	cgiWifiAps.scanInProgress=1;
-	wifi_station_scan(NULL, wifiScanDoneCb);
-}
-
-//This CGI is called from the bit of AJAX-code in wifi.tpl. It will initiate a
-//scan for access points and if available will return the result of an earlier scan.
-//The result is embedded in a bit of JSON parsed by the javascript in wifi.tpl.
-int ICACHE_FLASH_ATTR cgiWiFiScan(HttpdConnData *connData) {
-	int len;
-	int i;
-	char buff[1024];
-	httpdStartResponse(connData, 200);
-	httpdHeader(connData, "Content-Type", "application/json");
-	httpdEndHeaders(connData);
-
-	if (cgiWifiAps.scanInProgress==1) {
-		//We're still scanning. Tell Javascript code that.
-		len=os_sprintf(buff, "{\n \"result\": { \n\"inProgress\": \"1\"\n }\n}\n");
-		httpdSend(connData, buff, len);
-	} else {
-		//We have a scan result. Pass it on.
-		len=os_sprintf(buff, "{\n \"result\": { \n\"inProgress\": \"0\", \n\"APs\": [\n");
-		httpdSend(connData, buff, len);
-		if (cgiWifiAps.apData==NULL) cgiWifiAps.noAps=0;
-		for (i=0; i<cgiWifiAps.noAps; i++) {
-			//Fill in json code for an access point
-			len=os_sprintf(buff, "{\"essid\": \"%s\", \"rssi\": \"%d\", \"enc\": \"%d\"}%s\n", 
-					cgiWifiAps.apData[i]->ssid, cgiWifiAps.apData[i]->rssi, 
-					cgiWifiAps.apData[i]->enc, (i==cgiWifiAps.noAps-1)?"":",");
-			httpdSend(connData, buff, len);
-		}
-		len=os_sprintf(buff, "]\n}\n}\n");
-		httpdSend(connData, buff, len);
-		//Also start a new scan.
-		wifiStartScan();
-	}
-	return HTTPD_CGI_DONE;
-}
 
 // This callback allows us to restart the system after we've responded nicely to the request
 static void ICACHE_FLASH_ATTR resetTimerCb(void *arg) {
@@ -313,6 +203,8 @@ int ICACHE_FLASH_ATTR tplWlanInfo(HttpdConnData *connData, char *token, void **a
 		os_sprintf(buff, MACSTR, MAC2STR(mac));
 	} else if (os_strcmp(token, "clientConnected")==0) {
 		os_sprintf(buff, "%d", wifi_station_get_connect_status());
+	} else if (os_strcmp(token, "clientSignal")==0) {
+		os_sprintf(buff, "%d", wifi_station_get_rssi());
 	} else if (os_strcmp(token, "APAuth")==0) {
 		wifi_softap_get_config(&ap_conf);
 		os_sprintf(buff, "%d", ap_conf.authmode);
@@ -322,6 +214,8 @@ int ICACHE_FLASH_ATTR tplWlanInfo(HttpdConnData *connData, char *token, void **a
 	} else if (os_strcmp(token, "APSSID")==0) {
 		wifi_softap_get_config(&ap_conf);
 		os_sprintf(buff, "%s", ap_conf.ssid);
+	} else if (os_strcmp(token, "version")==0) {
+		os_sprintf(buff, "%s", VERSION);
 	}
 
 	httpdSend(connData, buff, -1);
