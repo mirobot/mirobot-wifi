@@ -5,7 +5,7 @@
 #include "httpdespfs.h"
 #include "cgiwifi.h"
 #include "cgiflash.h"
-#include "cgiarduino.h"
+#include "cgiupdate.h"
 #include "stdout.h"
 #include "driver/uart.h"
 #include "arduino.h"

@@ -13,7 +13,7 @@ int ICACHE_FLASH_ATTR cgiArduinoUpload(HttpdConnData *connData) {
 		//Connection aborted. Clean up.
 		return HTTPD_CGI_DONE;
 	}
-	if(connData->post->len > 30720){
+	if(connData->post->len > ARDUINO_MAX_SIZE){
 		// The uploaded file is too large
 		os_printf("Arduino file too large\n");
 		httpdSend(connData, "HTTP/1.0 500 Internal Server Error\r\nServer: esp8266-httpd/0.3\r\nContent-Type: text/plain\r\nContent-Length: 25\r\n\r\nArduino file too large.\r\n", -1);
