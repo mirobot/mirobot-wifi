@@ -13,6 +13,7 @@
 #include "espfs.h"
 #include "captdns.h"
 #include "webpages-espfs.h"
+#include "rboot.h"
 
 #ifdef ESPFS_POS
 CgiUploadEspfsParams espfsParams={

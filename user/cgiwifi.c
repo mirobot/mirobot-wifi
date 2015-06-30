@@ -18,6 +18,7 @@ Cgi/template routines for the /wifi url.
 #include "httpd.h"
 #include "espmissingincludes.h"
 #include "version.h"
+#include "rboot.h"
 
 
 // This callback allows us to restart the system after we've responded nicely to the request
@@ -216,6 +217,8 @@ int ICACHE_FLASH_ATTR tplWlanInfo(HttpdConnData *connData, char *token, void **a
 		os_sprintf(buff, "%s", ap_conf.ssid);
 	} else if (os_strcmp(token, "version")==0) {
 		os_sprintf(buff, "%s", VERSION);
+	} else if (os_strcmp(token, "romSlot")==0) {
+		os_sprintf(buff, "%s", rboot_get_current_rom());
 	}
 
 	httpdSend(connData, buff, -1);
