@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html><head><title>WiFi connection</title>
+<style>
+body {
+	background-color: #FFF;
+	font-family: sans-serif;
+	padding:10px;
+}
+label{
+  display:block;
+  margin:10px 0;
+}
+.info{
+  margin:15px 0;
+  font-size:85%%;
+  color:#999;
+}
+.info p{margin:6px 0}
+h1{font-size:1.25em}
+#message{
+  margin:10px 0;
+}
+#fileInput{
+  border:3px dashed #AAA;
+  width:100%;
+  height:500px;
+}
+.updateitem{
+  border:2px solid #CCC;
+  margin:0 0 10px;
+  padding:10px 10px 5px 10px;
+  background-color:#f8f8f8;
+}
+.updateitem.good{
+  border-color: #33D121;
+  background-color:#dff8dd;
+}
+.updateitem.bad{
+  border-color: #D12121;
+  background-color:#f9e5e4;
+}
+p{
+  margin:0 0 5px 0;
+}
+.updateitem button{
+  float:right;
+}
+</style>
+</head>
+<body>
+  <div class="updateitem" id="arduino">
+    <button>Update</button>
+    <p>Arduino Firmware: <span class="current"></span></p>
+    <p>Latest: <span class="latest">Checking</span></p>
+  </div>
+  <div class="updateitem" id="wifi">
+    <button>Update</button>
+    <p>WiFi Firmware: <span class="current"></span></p>
+    <p>Latest: <span class="latest">Checking</span></p>
+  </div>
+  <div class="updateitem" id="ui">
+    <button>Update</button>
+    <p>UI Version: <span class="current"></span></p>
+    <p>Latest: <span class="latest">Checking</span></p>
+  </div>
+  <p><input type="checkbox" />Use prereleases</p>
+  <p><input type="checkbox" />Enable force updates</p>
+
+  <p id="msg" style="display:none"></p>
+  <script>
+var versions = {arduino:{current:null, latest:null, repo:'mirobot/mirobot-arduino', file:'mirobot-v2-firmware'},
+                wifi:   {current:'2.0.0', latest:null, repo:'mirobot/mirobot-wifi', file:'mirobot-v2-wifi'},
+                ui:     {current:'2.0.0', latest:null, repo:'mirobot/mirobot-wifi', file:'mirobot-v2-ui'}}
+
+var romSlot = "%romSlot%";
+if(romSlot === "%rom" + "Slot%") romSlot = "0";
+
+var usePrereleases = false
+
+var qs = function(s){return document.querySelector(s);}
+var qsa = function(s){return document.querySelectorAll(s);}
+
+var hex2bin = function(hex){
+  var chars = []
+  hex.toString().split('\n').map(function(line){
+    var linelength = parseInt(line.slice(1, 3), 16);
+    if(linelength && line.slice(7, 9) === '00') {
+      data = line.slice(9, 9 + 2 * linelength);
+      for(var j = 0; j< 2*linelength; j+=2){
+        chars.push(parseInt(data.slice(j, j+2), 16));
+      }
+    }
+  });
+  // Make the length a multiple of 4 for writing to flash
+  for(var i=0; i<chars.length % 4; i++){
+    chars.push(0);
+  }
+  return new Uint8Array(chars);
+}
+
+var checkLatestVersion = function(type){
+  var xhr = new XMLHttpRequest();
+  xhr.onreadystatechange = function(){
+    if(xhr.readyState === 4 && xhr.status === 200){
+      var res = JSON.parse(xhr.response);
+      for(var i = 0; i< res.length; i++){
+        if(!res[i].prerelease || usePrereleases && res[i].prerelease){
+          if(res[i].assets.length > 0){
+            for(var j=0; j<res[i].assets.length; j++){
+              if(res[i].assets[j].name.indexOf(versions[type].file) == 0){
+                versions[type].latest = res[i].tag_name.replace('v', '');
+                versions[type].url = res[i].assets[j].browser_download_url;
+                updateVersionString(type);
+                return;
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+  
+  xhr.open('GET', 'https://api.github.com/repos/' + versions[type].repo + '/releases', true);
+  xhr.send();
+}
+
+var updateVersionString = function(type){
+  qs('#' + type + ' .current').innerHTML = versions[type].current || 'Unknown'
+  qs('#' + type + ' .latest').innerHTML = versions[type].latest || 'Checking'
+  if(versions[type].latest){
+    if(versions[type].latest != versions[type].current){
+      qs('#' + type + ' button').innerHTML = 'Update';
+      qs('#' + type).className = 'updateitem bad';
+    }else{
+      qs('#' + type + ' button').innerHTML = 'Force Update';
+      qs('#' + type).className = 'updateitem good';
+    }
+  }else{
+    qs('#' + type).className = 'updateitem';
+  }
+}
+
+var str2ab = function(input){
+  var buf = new Uint8Array(input.length);
+  for (var i=0; i<input.length; i++) {
+    buf[i] = input.charCodeAt(i);
+  }
+  return buf;
+}
+
+var abEqual = function(ab1, ab2){
+  if(ab1.length !== ab2.length) return false;
+  for(var i=0; i<ab1.length; i++){
+    if(ab1[i] !== ab2[i]) return false;
+  }
+  return true;
+}
+
+var fetchURL = function(method, url, data, cors, cb){
+  cors = cors ? 'http://corsify.appspot.com/' : '';
+  console.log("Fetching: " + url);
+  var xhr = new XMLHttpRequest();
+  xhr.overrideMimeType('text\/plain; charset=x-user-defined');
+  xhr.onreadystatechange = function(){
+    if(xhr.readyState === 4){
+      console.log(xhr);
+      if(xhr.status >= 200 && xhr.status < 300){
+        //get ready to send it to the ESP
+        cb(xhr);
+      }else{
+        cb(false);
+      }
+    }
+  }
+  xhr.open(method, cors + url, true);
+  if(data){
+    xhr.send(data);
+  }else{
+    xhr.send();
+  }
+}
+
+var error = function(type){
+  qs('#' + type + ' button').innerHTML = "Update";
+  qs('#' + type + ' button').disabled = false;
+  console.log('Error updating ' + type);
+}
+
+var writeFlash = function(url, fn, type, offset, cb){
+  // fetch the new firmware
+  fetchURL('GET', url, null, true, function(res1){
+    if(!res1) return cb();
+    // convert if necessary
+    var data = fn ? fn(res1.response) : str2ab(res1.response);
+    // upload to flash
+    fetchURL('POST', '/admin/update' + type + '.cgi', data, false, function(res2){
+      if(!res2) return cb();
+      
+      // test the flash
+      fetchURL('GET', '/admin/readflash.bin?offset=' + offset + '&length=' + data.length, null, false, function(res3){
+        if(!res3) return cb(false);
+        if(abEqual(data, str2ab(res3.response))){
+          return cb(true);
+        }else{
+          console.log('Error checking ' + type + ' written');
+          return cb();
+        }
+      });
+    });
+  });
+}
+
+var update = function(e){
+  console.log(e)
+  e.srcElement.innerHTML = "Updating";
+  e.srcElement.disabled = true;
+  var type = e.srcElement.parentNode.id;
+  if(type == 'arduino'){
+    writeFlash(versions.arduino.url, hex2bin, 'arduino', 0x76000, function(res){
+      if(res){
+        fetchURL('POST', '/admin/updatearduino.cgi?flash=true', null, false, function(res){
+          if(res){
+            console.log(res ? "Successfully flashed" : "Error flashing");
+          }else{
+            error('arduino');
+            console.log("Error flashing");
+          }
+        });
+      }else{
+        console.log("Error updating Arduino");
+        error('arduino');
+      }
+    })
+  }else if(type == 'ui'){
+    writeFlash(versions.ui.url, false, 'ui', 0x70000, function(res){
+      if(res){
+        console.log("Successfully updated UI");
+      }else{
+        console.log("Error updating UI");
+      }
+    });
+  }else if(type == 'wifi'){
+    // check which file to fetch
+    // fetch the new firmware
+    // upload to flash
+    // test the flash
+    // switch over and reboot
+    // wait until it comes back
+  }
+}
+
+var initVersions = function(){
+  // Pull the arduino version out of the query string
+  var match = /arduino=(\d+\.\d+\.\d+)/.exec(window.location.search)
+  versions.arduino.current = match ? match[1] : null
+  
+  for(var type in versions){
+    updateVersionString(type);
+    checkLatestVersion(type);
+    qs('#' + type + ' button').onclick = update;
+  }
+}
+
+var init = function(){
+  initVersions();
+}
+
+init();
+
+  </script>
+</body>
+</html>

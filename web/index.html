@@ -222,17 +222,17 @@
       border:5px solid #999;
       text-align:center;
     }
-    #wifiConfig .content input[type=text],#wifiConfig .content input[type=password]{
+    #configFrame .content input[type=text],#configFrame .content input[type=password]{
       width:200px;
     }
-    #wifiConfig .content td{
+    #configFrame .content td{
       text-align:right;
       padding:4px;
     }
-    #wifiConfig .content td.left{
+    #configFrame .content td.left{
       text-align:left;
     }
-    #wifiConfig iframe{
+    #configFrame iframe{
       width:400px;
       height:500px;
       border:none;
@@ -246,6 +246,7 @@
     }
     #version a{
       color:#888;
+      text-decoration:none;
     }
     .editor .extra{
       padding:10px;
@@ -287,9 +288,9 @@
     <span id="miroConnState" class="connState"></span>
     <span id="version"></span>
   </div>
-  <div id="wifiConfig" class="modal" style="display:none">
-    <div class="content" id="wifiContent">
-      <iframe src="" id="wifiFrame"></iframe>
+  <div id="configFrame" class="modal" style="display:none">
+    <div class="content" id="configContent">
+      <iframe src=""></iframe>
     </div>
   </div>
   <div id="wsMsg" class="modal" style="display:none">
@@ -302,9 +303,9 @@
   </div>
   <div id="code"></div>
   <script>
-    var wirelessConfig = {"clientSSID":"%clientSSID%","wifiMode":"%wifiMode%","clientIp":"%clientIp%","clientGateway":"%clientGateway%","clientNetmask":"%clientNetmask%","clientDhcp":"%clientDhcp%","clientMac":"%clientMac%","clientConnected":"%clientConnected%","APAuth":"%APAuth%","APChannel":"%APChannel%","APSSID":"%APSSID%"}
+    var wirelessConfig = {"version":"%version%","clientSSID":"%clientSSID%","wifiMode":"%wifiMode%","clientIp":"%clientIp%","clientGateway":"%clientGateway%","clientNetmask":"%clientNetmask%","clientDhcp":"%clientDhcp%","clientMac":"%clientMac%","clientConnected":"%clientConnected%","APAuth":"%APAuth%","APChannel":"%APChannel%","APSSID":"%APSSID%"}
 if(wirelessConfig.clientSSID.indexOf('clientSSID') > -1){
-  wirelessConfig = {"clientSSID":"foo","wifiMode":"3","clientIp":"192.168.1.100","clientGateway":"192.168.1.1","clientNetmask":"255.255.255.0","clientDhcp":"true","clientMac":"10:20:30:40:50:60","clientConnected":"true","APAuth":"0","APChannel":"6","APSSID":"Mirobot-abcd"};
+  wirelessConfig = {"version":"2.0.0","clientSSID":"foo","wifiMode":"3","clientIp":"192.168.1.100","clientGateway":"192.168.1.1","clientNetmask":"255.255.255.0","clientDhcp":"true","clientMac":"10:20:30:40:50:60","clientConnected":"true","APAuth":"0","APChannel":"6","APSSID":"Mirobot-abcd"};
 }
  
   </script>
@@ -317,37 +318,15 @@ if(wirelessConfig.clientSSID.indexOf('clientSSID') > -1){
     var $;
     var has_remote_conn = true;
     var remote_base = 'http://mirobot.io/assets/mirobot_js/';
-    var ui_version = '{{timestamp}}';
+    var ui_version = '2.0.0';
     var hashConfig = {};
     var mirobot;
-    if(ui_version === ('{{time' + 'stamp}}')){
-      ui_version = '20140723'; //So we can use the raw source for testing
-    }
-    
+
     if(window.location.hash !== ''){
       window.location.hash.replace('#', '').split('&').map(function(el){
         var split = el.split('=');
         hashConfig[split[0]] = split[1];
       });
-    }
-    
-    var LoadScripts = function (_scripts, base_url, done) {
-        var scripts = [];
-        var x = 0;
-        var loopArray = function(_scripts, scripts) {
-          // call itself
-          loadScript(_scripts[x], scripts[x], base_url, function(){
-            // set x to next item
-            x++;
-            // any more items in array?
-            if(x < _scripts.length) {
-              loopArray(_scripts, scripts);   
-            }else{
-              done();
-            }
-          }); 
-        }
-        loopArray(_scripts, scripts);      
     }
 
     // load script function with callback to handle synchronicity 
@@ -373,7 +352,7 @@ if(wirelessConfig.clientSSID.indexOf('clientSSID') > -1){
       document.getElementsByTagName('head')[0].appendChild(script);
       window.setTimeout(noload, 3000);
     }
-    
+
     // In case console logging kills the browser
     if(typeof window.console === 'undefined'){ window.console = {log: function(){}}; }
 
@@ -390,6 +369,14 @@ if(wirelessConfig.clientSSID.indexOf('clientSSID') > -1){
         return document.getElementById(id);
       }
 
+      var qs = function(s){
+        return document.querySelector(s);
+      }
+
+      var qsa = function(s){
+        return document.querySelectorAll(s);
+      }
+
       var hideModal = function(modal){
         el(modal).style.display = 'none';
         // unbind the event
@@ -398,7 +385,7 @@ if(wirelessConfig.clientSSID.indexOf('clientSSID') > -1){
 
       updateWirelessConfig = function(config){
         wirelessConfig = config;
-      
+
         var conn = el('wifiConnState');
         if(wirelessConfig.clientConnected === 'false'){
           conn.innerHTML = '&#10007; Configure WiFi';
@@ -412,7 +399,7 @@ if(wirelessConfig.clientSSID.indexOf('clientSSID') > -1){
       }
 
       window.hideWiFiConfig = function(){
-        hideModal('wifiConfig');
+        hideModal('configFrame');
         checkConfig(10000);
       }
 
@@ -422,22 +409,29 @@ if(wirelessConfig.clientSSID.indexOf('clientSSID') > -1){
           hideModal(modal);
         }
       }
-    
+
+      var showModal = function(src){
+        qs('#configContent iframe').src = src;
+        el('configFrame').style.display = 'block';
+        el('configContent').onclick = function(e){e.stopPropagation()};
+        el('configFrame').onclick = function(){hideModal('configFrame');checkConfig();};
+        document.body.onkeyup = function(e){ escEvent(e, 'configFrame');checkConfig();};
+      }
+
       var configureWifi = function(e){
         e.preventDefault();
-        el('wifiFrame').src = '/wifi/index.html';
-        el('wifiConfig').style.display = 'block';
-        el('wifiContent').onclick = function(e){e.stopPropagation()};
-        el('wifiConfig').onclick = function(){hideModal('wifiConfig');checkConfig();};
-        document.body.onkeyup = function(e){ escEvent(e, 'wifiConfig');checkConfig();};
+        showModal('/admin/wifi.html');
       }
-    
+
+      var updateFirmware = function(e){
+        e.preventDefault();
+        showModal('/admin/update.html');
+      }
+
       var setVersions = function(){
-        var versionString = "Firmware version: " + mirobot_version + " | UI version: " + ui_version;
-        if(latest_ui_version && latest_ui_version > ui_version){
-          versionString += ' <a href="http://mirobot.io/build/firmware_update/" target="_blank">Upgrade</a>';
-        }
+        var versionString = '<a href="#">WiFi version: ' + wirelessConfig.version + " | Firmware version: " + mirobot_version + " | UI version: " + ui_version + '</a>';
         el('version').innerHTML = versionString;
+        qs('#version a').onclick = updateFirmware
       }
 
       var getVersion = function(){
@@ -448,7 +442,7 @@ if(wirelessConfig.clientSSID.indexOf('clientSSID') > -1){
           setVersions();
         });
       }
-    
+
       var checkUIVersion = function(){
         if(has_remote_conn){
           var xhr = new XMLHttpRequest();
@@ -470,7 +464,7 @@ if(wirelessConfig.clientSSID.indexOf('clientSSID') > -1){
           xhr.send();
         }
       }
-      
+
       var initProgram = function(){
         var host = hashConfig['m'] || window.location.hostname;
         mirobot = new Mirobot('ws://' + host + ':8899/websocket');
