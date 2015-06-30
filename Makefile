@@ -1,3 +1,5 @@
+-include version.mk
+
 #Position and maximum length of espfs in flash memory. This can be undefined. In this case 
 #the webpages will be linked in into the executable file. If this is defined, please do a 
 #'make htmlflash' to flash the espfs into the ESPs memory.
@@ -6,8 +8,9 @@ ESPFS_SIZE = 0x6000
 
 # Output directors to store intermediate compiled files
 # relative to the project directory
-BUILD_BASE	= build
-FW_BASE		= firmware
+BUILD_BASE	 = build
+FW_BASE		   = firmware
+RELEASE_BASE = release
 
 # Base directory for the compiler. Needs a / at the end; if not set it'll use the tools that are in
 # the PATH.
@@ -40,7 +43,7 @@ LIBS += esphttpd
 # compiler flags using during compilation of source files
 CFLAGS		= -Os -ggdb -std=c99 -Werror -Wpointer-arith -Wundef -Wall -Wl,-EL -fno-inline-functions \
 		-nostdlib -mlongcalls -mtext-section-literals  -D__ets__ -DICACHE_FLASH -D_STDINT_H \
-		-Wno-address
+		-Wno-address -DVERSION=\"$(VERSION)\"
 
 # linker flags used to generate the main object file
 LDFLAGS		= -nostdlib -Wl,--no-check-sections -u call_user_start -Wl,-static
@@ -122,10 +125,12 @@ libesphttpd/Makefile:
 	$(Q) git submodule init
 	$(Q) git submodule update
 
-shrink_html:
-	./bin/shrink_html.rb
+html/index.html: $(wildcard web/*/*)
+	$(vecho) "Squash $@"
+	$(Q) VERSION=$(VERSION) ./bin/shrink_html.rb
 
-libesphttpd: libesphttpd/Makefile shrink_html
+libesphttpd/libesphttpd.a: libesphttpd/Makefile html/index.html
+	$(vecho) "MAKE $@"
 	$(Q) make -C libesphttpd
 
 rboot:
@@ -139,34 +144,43 @@ $(TARGET_OUT): $(APP_AR)
 $(FW_BASE): $(TARGET_OUT) rboot
 	$(vecho) "FW $@"
 	$(Q) mkdir -p $@
-	$(Q) cp libesphttpd/webpages.espfs firmware
-	$(Q) cp rboot/firmware/rboot.bin firmware/rboot.bin
-	$(Q) $(ESPTOOL2) -quiet -bin -boot2 build/mirobot.rom0.out firmware/mirobot.rom0.bin .text .data .rodata
-	$(Q) $(ESPTOOL2) -quiet -bin -boot2 build/mirobot.rom1.out firmware/mirobot.rom1.bin .text .data .rodata
+	$(Q) cp libesphttpd/webpages.espfs $(FW_BASE)/mirobot-v2-ui.bin
+	$(Q) cp rboot/firmware/rboot.bin $(FW_BASE)/rboot.bin
+	$(Q) $(ESPTOOL2) -quiet -bin -boot2 $(BUILD_BASE)/mirobot.rom0.out $(FW_BASE)/mirobot-v2-wifi.rom0.bin .text .data .rodata
+	$(Q) $(ESPTOOL2) -quiet -bin -boot2 $(BUILD_BASE)/mirobot.rom1.out $(FW_BASE)/mirobot-v2-wifi.rom1.bin .text .data .rodata
 
-$(APP_AR):  libesphttpd $(OBJ)
+$(APP_AR):  libesphttpd/libesphttpd.a $(OBJ)
 	$(vecho) "AR $@"
 	$(Q) $(AR) cru $@ $(OBJ)
 
-checkdirs: $(BUILD_DIR)
+checkdirs: $(BUILD_DIR)  
 
+$(RELEASE_BASE): $(FW_BASE)
+	$(Q) mkdir -p $@
+	$(Q) cp $(FW_BASE)/mirobot-v2-ui.bin $(RELEASE_BASE)/mirobot-v2-ui-$(VERSION).bin
+	$(Q) cp $(FW_BASE)/mirobot-v2-wifi.rom0.bin $(RELEASE_BASE)/mirobot-v2-wifi-$(VERSION).rom0.bin
+	$(Q) cp $(FW_BASE)/mirobot-v2-wifi.rom1.bin $(RELEASE_BASE)/mirobot-v2-wifi-$(VERSION).rom1.bin
+	
 $(BUILD_DIR):
 	$(Q) mkdir -p $@
 
 flash: $(TARGET_OUT) $(FW_BASE)
 	$(Q) $(ESPTOOL) --port $(ESPPORT) --baud $(ESPBAUD) write_flash 0x00000 $(FW_BASE)/0x00000.bin 0x40000 $(FW_BASE)/0x40000.bin
 
+flashweb: $(FW_BASE)
+	$(vecho) "curl --request POST --data-binary @firmware/mirobot-v2-ui.bin http://$(IP)/admin/updateui.cgi"
+
 blankflash:
 	$(Q) $(ESPTOOL) --port $(ESPPORT) --baud $(ESPBAUD) write_flash 0x7E000 $(SDK_BASE)/bin/blank.bin
 
-testwebsize: libesphttpd
-	$(Q) if [ $$(stat -f '%z' firmware/webpages.espfs) -gt $$(( $(ESPFS_SIZE) )) ]; then echo "webpages.espfs too big!"; false; fi
+testwebsize: libesphttpd/libesphttpd.a
+	$(Q) if [ $$(stat -f '%z' firmware/mirobot-v2-ui.bin) -gt $$(( $(ESPFS_SIZE) )) ]; then echo "webpages.espfs too big!"; false; fi
 
-htmlflash: libesphttpd testwebsize
+htmlflash: libesphttpd/libesphttpd.a testwebsize
 	$(Q) $(ESPTOOL) --port $(ESPPORT) --baud $(ESPBAUD) write_flash $(ESPFS_POS) libesphttpd/webpages.espfs
 
-flashall: libesphttpd $(TARGET_OUT) $(FW_BASE) testwebsize
-	$(Q) $(ESPTOOL) --port $(ESPPORT) --baud $(ESPBAUD) write_flash 0x00000 firmware/rboot.bin 0x01000  $(SDK_BASE)/bin/blank.bin 0x2000 firmware/mirobot.rom0.bin $(ESPFS_POS) firmware/webpages.espfs
+flashall: libesphttpd/libesphttpd.a $(TARGET_OUT) $(FW_BASE) testwebsize
+	$(Q) $(ESPTOOL) --port $(ESPPORT) --baud $(ESPBAUD) write_flash 0x00000 firmware/rboot.bin 0x01000  $(SDK_BASE)/bin/blank.bin 0x2000 firmware/mirobot-v2-wifi.rom0.bin $(ESPFS_POS) firmware/mirobot-v2-ui.bin
 
 clean:
 	$(Q) make -C libesphttpd clean
@@ -174,6 +188,7 @@ clean:
 	$(Q) rm -f $(TARGET_OUT)
 	$(Q) find $(BUILD_BASE) -type f | xargs rm -f
 	$(Q) rm -rf $(FW_BASE)
+	$(Q) rm -rf $(RELEASE_BASE)
 	$(Q) rm -rf html
 
 $(foreach bdir,$(BUILD_DIR),$(eval $(call compile-objects,$(bdir))))

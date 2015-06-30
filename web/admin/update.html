@@ -69,8 +69,8 @@ p{
   <p id="msg" style="display:none"></p>
   <script>
 var versions = {arduino:{current:null, latest:null, repo:'mirobot/mirobot-arduino', file:'mirobot-v2-firmware'},
-                wifi:   {current:'2.0.0', latest:null, repo:'mirobot/mirobot-wifi', file:'mirobot-v2-wifi'},
-                ui:     {current:'2.0.0', latest:null, repo:'mirobot/mirobot-wifi', file:'mirobot-v2-ui'}}
+                wifi:   {current:'%version%', latest:null, repo:'mirobot/mirobot-wifi', file:'mirobot-v2-wifi'},
+                ui:     {current:'{{version}}', latest:null, repo:'mirobot/mirobot-wifi', file:'mirobot-v2-ui'}}
 
 var romSlot = "%romSlot%";
 if(romSlot === "%rom" + "Slot%") romSlot = "0";

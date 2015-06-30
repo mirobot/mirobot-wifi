@@ -17,7 +17,6 @@ Cgi/template routines for the /wifi url.
 #include "mem.h"
 #include "httpd.h"
 #include "espmissingincludes.h"
-#include "version.h"
 #include "rboot.h"
 
 

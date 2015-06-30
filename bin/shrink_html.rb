@@ -46,7 +46,7 @@ end
 
 def process_dir(dir)
   Dir.glob(dir + '/*').each do |f|
-    next if f =~ /\.js/ || f =~ /\.css/
+    next if f =~ /\.js$/ || f =~ /\.css$/
     if File.directory?(f)
       Dir.mkdir(f.gsub(SOURCE_DIR, OUTPUT_DIR))
       process_dir(f)
@@ -57,3 +57,6 @@ def process_dir(dir)
 end
 
 process_dir(SOURCE_DIR)
+`find #{OUTPUT_DIR} -type f -exec sed -i 's/{{version}}/#{ENV['VERSION']}/g' {} +`
+`find #{OUTPUT_DIR} -type f -exec sed -i 's/%/%%/g' {} +`
+`find #{OUTPUT_DIR} -type f -exec sed -i 's/\`/%/g' {} +`
