@@ -51,10 +51,10 @@ uint8 ICACHE_FLASH_ATTR rboot_get_current_rom() {
 }
 
 // set current boot rom
-bool ICACHE_FLASH_ATTR rboot_set_current_rom(uint8 rom) {
-	rboot_config conf;
-	conf = rboot_get_config();
-	if (rom >= conf.count) return false;
-	conf.current_rom = rom;
+bool ICACHE_FLASH_ATTR rboot_switch_rom() {
+	rboot_config conf = rboot_get_config();
+	os_printf("Switching ROM. Old: %d\r", conf.current_rom);
+	conf.current_rom = !conf.current_rom;
+	os_printf("Switching ROM. New: %d\r", conf.current_rom);
 	return rboot_set_config(&conf);
 }

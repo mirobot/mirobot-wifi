@@ -1,7 +1,7 @@
 #include <esp8266.h>
 #include "cgiflash.h"
 #include "arduino.h"
-//#include "espfs.h"
+#include "rboot.h"
 
 
 //Cgi that reads the SPI flash. Assumes 512KByte flash.
@@ -71,7 +71,7 @@ int ICACHE_FLASH_ATTR write_post_to_flash(HttpdConnData *connData, int max_len, 
 	}
 }
 
-//Cgi that allows the ESPFS image to be replaced via http POST
+//Cgi that allows the Arduino firmware to be updated via http
 int ICACHE_FLASH_ATTR cgiUploadArduino(HttpdConnData *connData) {
 	char temp[10];
 	bool flash = false;
@@ -98,6 +98,49 @@ int ICACHE_FLASH_ATTR cgiUploadArduino(HttpdConnData *connData) {
 		os_sprintf(headbuff, "HTTP/1.0 200 OK\r\nServer: esp8266-httpd/0.3\r\nContent-Type: application/json\r\nContent-Length: %d\r\n\r\n", strlen(buff));
 		httpdSend(connData, headbuff, -1);
 		httpdSend(connData, buff, -1);
+	}
+	return HTTPD_CGI_DONE;
+}
+
+static void ICACHE_FLASH_ATTR resetTimerCb(void *arg) {
+	system_restart();
+}
+
+//Cgi that allows the WiFi firmware to be updated via http
+int ICACHE_FLASH_ATTR cgiUploadWifi(HttpdConnData *connData) {
+	static ETSTimer postTimer;
+	char temp[10];
+	bool commit = false;
+	int loc;
+
+	if(connData->requestType == HTTPD_METHOD_POST){
+		if(httpdFindArg(connData->getArgs, "commit", temp, sizeof(temp)) > 0){
+			commit = !strcmp(temp, "true");
+		}
+
+		if(commit){
+			// Switch to the other boot rom
+			if(rboot_switch_rom()){
+				os_timer_disarm(&postTimer);
+				os_timer_setfn(&postTimer, resetTimerCb, NULL);
+				os_timer_arm(&postTimer, 500, 0);
+				httpdSend(connData, "HTTP/1.0 204 No Content\r\nServer: esp8266-httpd/0.3\r\n\r\n", -1);
+			}else{
+				httpdSend(connData, "HTTP/1.0 500 Server Error\r\nServer: esp8266-httpd/0.3\r\n\r\n", -1);
+			}
+		}else{
+			if(rboot_get_current_rom() == 0){
+				// Write to rom location 1
+				loc = 0x39000;
+			}else if(rboot_get_current_rom() == 1){
+				// Write to rom location 0
+				loc = 0x02000;
+			}else{
+				// There's an error, exit;
+				return HTTPD_CGI_DONE;
+			}
+			return write_post_to_flash(connData, (220 * 1024), loc);
+		}
 	}
 	return HTTPD_CGI_DONE;
 }

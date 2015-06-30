@@ -32,16 +32,16 @@ HttpdBuiltInUrl builtInUrls[]={
 	
 	// admin functions
 	{"/admin/updateui.cgi", cgiUploadEspfs, &espfsParams},
-	{"/admin/updatewifi.cgi", cgiUploadEspfs, NULL},
+	{"/admin/updatewifi.cgi", cgiUploadWifi, NULL},
 	{"/admin/updatearduino.cgi", cgiUploadArduino, NULL},
 	{"/admin/readflash.bin", cgiReadFlashChunk, NULL},
-
-	{"/wifi", cgiRedirect, "/wifi/index.html"},
-	{"/wifi/", cgiRedirect, "/wifi/index.html"},
-	{"/wifi/wifiscan.cgi", cgiWiFiScan, NULL},
-	{"/wifi/index.html", cgiEspFsTemplate, tplWlanInfo},
-	{"/wifi/settings.cgi", cgiWifiSettings, NULL},
-	{"/wifi/settings.json", cgiEspFsTemplate, tplWlanInfo},
+	{"/admin/settings.json", cgiEspFsTemplate, tplWlanInfo},
+	{"/admin/update.html", cgiEspFsTemplate, tplWlanInfo},
+	{"/admin/wifi.html", cgiEspFsTemplate, tplWlanInfo},
+	{"/admin/wifiscan.cgi", cgiWiFiScan, NULL},
+	{"/admin/settings.cgi", cgiWifiSettings, NULL},
+	
+	{"/index.html", cgiEspFsTemplate, tplWlanInfo},
 
 	{"*", cgiEspFsHook, NULL}, //Catch-all cgi function for the filesystem
 	{NULL, NULL, NULL}

@@ -12,18 +12,13 @@ label{
 }
 .info{
   margin:15px 0;
-  font-size:85%%;
+  font-size:85%;
   color:#999;
 }
 .info p{margin:6px 0}
 h1{font-size:1.25em}
 #message{
   margin:10px 0;
-}
-#fileInput{
-  border:3px dashed #AAA;
-  width:100%;
-  height:500px;
 }
 .updateitem{
   border:2px solid #CCC;
@@ -50,12 +45,12 @@ p{
 <body>
   <div class="updateitem" id="arduino">
     <button>Update</button>
-    <p>Arduino Firmware: <span class="current"></span></p>
+    <p>Arduino Version: <span class="current"></span></p>
     <p>Latest: <span class="latest">Checking</span></p>
   </div>
   <div class="updateitem" id="wifi">
     <button>Update</button>
-    <p>WiFi Firmware: <span class="current"></span></p>
+    <p>WiFi Version: <span class="current"></span></p>
     <p>Latest: <span class="latest">Checking</span></p>
   </div>
   <div class="updateitem" id="ui">
@@ -69,11 +64,13 @@ p{
   <p id="msg" style="display:none"></p>
   <script>
 var versions = {arduino:{current:null, latest:null, repo:'mirobot/mirobot-arduino', file:'mirobot-v2-firmware'},
-                wifi:   {current:'%version%', latest:null, repo:'mirobot/mirobot-wifi', file:'mirobot-v2-wifi'},
-                ui:     {current:'{{version}}', latest:null, repo:'mirobot/mirobot-wifi', file:'mirobot-v2-ui'}}
+                wifi:   {current:'`version`', latest:null, repo:'mirobot/mirobot-wifi', file:'mirobot-v2-wifi', romSlot:"`romSlot`"},
+                ui:     {current:'{{version}}', latest:null, repo:'mirobot/mirobot-wifi', file:'mirobot-v2-ui'}};
 
-var romSlot = "%romSlot%";
-if(romSlot === "%rom" + "Slot%") romSlot = "0";
+if(versions.wifi.romSlot.indexOf('romSlot') >= 0) versions.wifi.romSlot = "0";
+if(versions.wifi.current.indexOf('version') >= 0) versions.wifi.current = "2.0.0";
+if(versions.ui.current.indexOf('version') >= 0) versions.wifi.current = "2.0.0";
+versions.wifi.romSlot = Number.parseInt(versions.wifi.romSlot);
 
 var usePrereleases = false
 
@@ -163,7 +160,6 @@ var fetchURL = function(method, url, data, cors, cb){
   xhr.overrideMimeType('text\/plain; charset=x-user-defined');
   xhr.onreadystatechange = function(){
     if(xhr.readyState === 4){
-      console.log(xhr);
       if(xhr.status >= 200 && xhr.status < 300){
         //get ready to send it to the ESP
         cb(xhr);
@@ -210,38 +206,73 @@ var writeFlash = function(url, fn, type, offset, cb){
   });
 }
 
+var msg = function(msg){
+  console.log(msg);
+}
+
 var update = function(e){
   console.log(e)
   e.srcElement.innerHTML = "Updating";
   e.srcElement.disabled = true;
   var type = e.srcElement.parentNode.id;
   if(type == 'arduino'){
+    // Write the new firmware
     writeFlash(versions.arduino.url, hex2bin, 'arduino', 0x76000, function(res){
       if(res){
+        // Flash the arduino
         fetchURL('POST', '/admin/updatearduino.cgi?flash=true', null, false, function(res){
           if(res){
-            console.log(res ? "Successfully flashed" : "Error flashing");
+            msg(res ? "Successfully flashed" : "Error flashing");
           }else{
             error('arduino');
-            console.log("Error flashing");
+            msg("Error flashing");
           }
         });
       }else{
-        console.log("Error updating Arduino");
+        msg("Error updating Arduino");
         error('arduino');
       }
     })
   }else if(type == 'ui'){
+    // Write the new web image
     writeFlash(versions.ui.url, false, 'ui', 0x70000, function(res){
       if(res){
-        console.log("Successfully updated UI");
+        msg("Successfully updated UI");
       }else{
-        console.log("Error updating UI");
+        msg("Error updating UI");
       }
     });
   }else if(type == 'wifi'){
     // check which file to fetch
-    // fetch the new firmware
+    var url = versions.wifi.url;
+    var loc = 0;
+    if(versions.wifi.romSlot === 0){
+      url = url.replace(/rom\d\.bin/, "rom1.bin");
+      loc = 0x39000;
+    }else if(versions.wifi.romSlot === 1){
+      url = url.replace(/rom\d\.bin/, "rom0.bin");
+      loc = 0x02000;
+    }else{
+      return;
+    }
+    // write and test the new firmware
+    writeFlash(url, false, 'wifi', loc, function(res){
+      if(res){
+        console.log("Success - switching over");
+        // Flash the arduino
+        fetchURL('POST', '/admin/updatewifi.cgi?commit=true', null, false, function(res){
+          if(res){
+            msg(res ? "Successfully flashed" : "Error flashing");
+          }else{
+            error('arduino');
+            msg("Error flashing");
+          }
+        });
+      }else{
+        msg("Error updating Arduino");
+        error('arduino');
+      }
+    });
     // upload to flash
     // test the flash
     // switch over and reboot

@@ -1,16 +1,3 @@
-/*
-Cgi/template routines for the /wifi url.
-*/
-
-/*
- * ----------------------------------------------------------------------------
- * "THE BEER-WARE LICENSE" (Revision 42):
- * Jeroen Domburg <jeroen@spritesmods.com> wrote this file. As long as you retain 
- * this notice you can do whatever you want with this stuff. If we meet some day, 
- * and you think this stuff is worth it, you can buy me a beer in return. 
- * ----------------------------------------------------------------------------
- */
-
 #include <string.h>
 #include <osapi.h>
 #include "user_interface.h"
@@ -18,7 +5,6 @@ Cgi/template routines for the /wifi url.
 #include "httpd.h"
 #include "espmissingincludes.h"
 #include "rboot.h"
-
 
 // This callback allows us to restart the system after we've responded nicely to the request
 static void ICACHE_FLASH_ATTR resetTimerCb(void *arg) {
@@ -217,7 +203,7 @@ int ICACHE_FLASH_ATTR tplWlanInfo(HttpdConnData *connData, char *token, void **a
 	} else if (os_strcmp(token, "version")==0) {
 		os_sprintf(buff, "%s", VERSION);
 	} else if (os_strcmp(token, "romSlot")==0) {
-		os_sprintf(buff, "%s", rboot_get_current_rom());
+		os_sprintf(buff, "%d", rboot_get_current_rom());
 	}
 
 	httpdSend(connData, buff, -1);

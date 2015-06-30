@@ -11,7 +11,7 @@ label{
 }
 .info{
   margin:15px 0;
-  font-size:85%%;
+  font-size:85%;
   color:#999;
 }
 .info p{margin:6px 0}
@@ -22,7 +22,7 @@ h1 input{margin:0 10px 0 0}
 }
 </style>
 <script type="text/javascript">
-var settings = {"clientSSID":"%clientSSID%","wifiMode":"%wifiMode%","clientIp":"%clientIp%","clientGateway":"%clientGateway%","clientNetmask":"%clientNetmask%","clientDhcp":"%clientDhcp%","clientMac":"%clientMac%","clientConnected":"%clientConnected%","APAuth":"%APAuth%","APChannel":"%APChannel%","APSSID":"%APSSID%"}
+var settings = {"clientSSID":"`clientSSID`","wifiMode":"`wifiMode`","clientIp":"`clientIp`","clientGateway":"`clientGateway`","clientNetmask":"`clientNetmask`","clientDhcp":"`clientDhcp`","clientMac":"`clientMac`","clientConnected":"`clientConnected`","APAuth":"`APAuth`","APChannel":"`APChannel`","APSSID":"`APSSID`"}
 if(settings.clientSSID.indexOf('clientSSID') > -1){
   settings = {"clientSSID":"foo","wifiMode":"3","clientIp":"192.168.1.100","clientGateway":"192.168.1.1","clientNetmask":"255.255.255.0","clientDhcp":"true","clientMac":"10:20:30:40:50:60","clientConnected":"true","APAuth":"0","APChannel":"6","APSSID":"Mirobot-abcd"};
 }
@@ -188,7 +188,7 @@ var sendForm = function(){
     urlEncodedDataPairs.push(encodeURIComponent(name) + '=' + encodeURIComponent(data[name]));
   }
   if(urlEncodedDataPairs.length === 0) return;
-  urlEncodedData = urlEncodedDataPairs.join('&').replace(/%%20/g, '+');
+  urlEncodedData = urlEncodedDataPairs.join('&').replace(/%20/g, '+');
   xhr.onreadystatechange=function() {
 		if (xhr.readyState==4){
 		  if(xhr.status>=200 && xhr.status<300) {
