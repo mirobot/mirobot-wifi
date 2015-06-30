@@ -30,10 +30,10 @@ HttpdBuiltInUrl builtInUrls[]={
 	{"/", cgiRedirect, "/index.html"},
 	
 	// admin functions
-	{"/updateweb.cgi", cgiUploadEspfs, NULL},
-	{"/updatearduino.cgi", cgiArduinoUpload, NULL},
-	{"/flasharduino.cgi", cgiArduinoFlash, NULL},
-	{"/flash.bin", cgiReadFlash, NULL},
+	{"/admin/updateui.cgi", cgiUploadEspfs, &espfsParams},
+	{"/admin/updatewifi.cgi", cgiUploadEspfs, NULL},
+	{"/admin/updatearduino.cgi", cgiUploadArduino, NULL},
+	{"/admin/readflash.bin", cgiReadFlashChunk, NULL},
 
 	{"/wifi", cgiRedirect, "/wifi/index.html"},
 	{"/wifi/", cgiRedirect, "/wifi/index.html"},
@@ -76,8 +76,13 @@ void initIO(){
 	gpio_output_set(0, 0, (1<<2), (1<<0));
 }
 
+void initWifi(){
+	wifi_set_opmode(0x03);
+}
+
 //Main routine. Initialize stdout, the I/O, filesystem and the webserver and we're done.
 void user_init(void) {
+  initWifi();
 	uart_init(BIT_RATE_57600, BIT_RATE_115200);
 	espFsInit((void*)(0x40200000 + ESPFS_POS));
 	//install_uart0_rx_handler(serialHandler);

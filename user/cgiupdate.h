@@ -3,7 +3,7 @@
 
 #include "httpd.h"
 
-int cgiArduinoUpload(HttpdConnData *connData);
-int cgiArduinoFlash(HttpdConnData *connData);
+int cgiUploadArduino(HttpdConnData *connData);
+int cgiReadFlashChunk(HttpdConnData *connData);
 
 #endif
