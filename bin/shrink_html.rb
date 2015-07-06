@@ -58,5 +58,5 @@ end
 
 process_dir(SOURCE_DIR)
 `find #{OUTPUT_DIR} -type f -exec sed -i 's/{{version}}/#{ENV['VERSION']}/g' {} +`
-`find #{OUTPUT_DIR} -type f -exec sed -i 's/%/%%/g' {} +`
-`find #{OUTPUT_DIR} -type f -exec sed -i 's/\`/%/g' {} +`
+`find #{OUTPUT_DIR} -type f ! -name *.png ! -name *.ico -exec sed -i 's/%/%%/g' {} +`
+`find #{OUTPUT_DIR} -type f ! -name *.png ! -name *.ico -exec sed -i 's/\`/%/g' {} +`
