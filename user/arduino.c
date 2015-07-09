@@ -1,8 +1,4 @@
-#include <osapi.h>
-#include "user_interface.h"
-#include "mem.h"
-#include "gpio.h"
-#include "espmissingincludes.h"
+#include <esp8266.h>
 #include "driver/uart.h"
 #include "arduino.h"
 

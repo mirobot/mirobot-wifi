@@ -9,9 +9,7 @@
  * Modification history:
  *     2014/3/12, v1.0 create this file.
 *******************************************************************************/
-#include "espmissingincludes.h"
-#include "ets_sys.h"
-#include "osapi.h"
+#include <esp8266.h>
 #include "driver/uart.h"
 
 // UartDev is defined and initialized in rom code.

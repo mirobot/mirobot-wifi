@@ -1,13 +1,6 @@
-#include "espmissingincludes.h"
-#include "c_types.h"
-#include "user_interface.h"
-#include "espconn.h"
-#include "mem.h"
-#include "osapi.h"
+#include <esp8266.h>
 #include "sha1.h"
 #include "base64.h"
-
-#include "espconn.h"
 #include "websocket.h"
 #include "driver/uart.h"
 

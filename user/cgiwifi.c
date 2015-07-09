@@ -1,9 +1,5 @@
-#include <string.h>
-#include <osapi.h>
-#include "user_interface.h"
-#include "mem.h"
+#include <esp8266.h>
 #include "httpd.h"
-#include "espmissingincludes.h"
 #include "rboot.h"
 
 // This callback allows us to restart the system after we've responded nicely to the request
