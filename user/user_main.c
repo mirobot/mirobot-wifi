@@ -86,8 +86,8 @@ void user_init(void) {
   initWifi();
 	uart_init(BIT_RATE_57600, BIT_RATE_115200);
 	espFsInit((void*)(0x40200000 + ESPFS_POS));
-	//install_uart0_rx_handler(serialHandler);
-	stdoutInit();
+	install_uart0_rx_handler(serialHandler);
+	//stdoutInit();
 	initIO();
 	captdnsInit();
 	httpdInit(builtInUrls, 80);
