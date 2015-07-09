@@ -302,24 +302,23 @@
     </div>
   </div>
   <div id="code"></div>
-  <script>
-    var wirelessConfig = {"version":"`version`","clientSSID":"`clientSSID`","wifiMode":"`wifiMode`","clientIp":"`clientIp`","clientGateway":"`clientGateway`","clientNetmask":"`clientNetmask`","clientDhcp":"`clientDhcp`","clientMac":"`clientMac`","clientConnected":"`clientConnected`","APAuth":"`APAuth`","APChannel":"`APChannel`","APSSID":"`APSSID`"}
-if(wirelessConfig.clientSSID.indexOf('clientSSID') > -1){
-  wirelessConfig = {"version":"2.0.0","clientSSID":"foo","wifiMode":"3","clientIp":"192.168.1.100","clientGateway":"192.168.1.1","clientNetmask":"255.255.255.0","clientDhcp":"true","clientMac":"10:20:30:40:50:60","clientConnected":"true","APAuth":"0","APChannel":"6","APSSID":"Mirobot-abcd"};
-}
- 
-  </script>
   <script type="text/javascript" src="snack.js"></script>
   <script type="text/javascript" src="mirobot.js"></script>
   <script type="text/javascript" src="builder.js"></script>
   <script type="text/javascript" src="snack.sortableList.js"></script>
   <script type="text/javascript">
-
+    var wirelessConfig = {"clientSSID":"`clientSSID`","wifiMode":"`wifiMode`","clientIp":"`clientIp`","clientGateway":"`clientGateway`","clientNetmask":"`clientNetmask`","clientDhcp":"`clientDhcp`","clientMac":"`clientMac`","clientConnected":"`clientConnected`","APAuth":"`APAuth`","APChannel":"`APChannel`","APSSID":"`APSSID`"};
+    var versions = {wifi:"`version`",arduino:undefined,ui:'{{version}}'};
+    if(wirelessConfig.clientSSID.indexOf('clientSSID') > -1){
+      wirelessConfig = {"clientSSID":"foo","wifiMode":"3","clientIp":"192.168.1.100","clientGateway":"192.168.1.1","clientNetmask":"255.255.255.0","clientDhcp":"true","clientMac":"10:20:30:40:50:60","clientConnected":"0","APAuth":"0","APChannel":"6","APSSID":"Mirobot-abcd"};
+      versions.wifi = '2.0.0';
+    }
+    if(versions.ui.indexOf('version') >= 0) versions.ui = '2.0.0';
+    
+    var u = utils();
     var $;
     var has_remote_conn = true;
     var remote_base = 'http://mirobot.io/assets/mirobot_js/';
-    var ui_version = '{{version}}';
-    if(ui_version.indexOf('version') >= 0) ui_version = '2.0.0';
     var hashConfig = {};
     var mirobot;
 
@@ -361,10 +360,7 @@ if(wirelessConfig.clientSSID.indexOf('clientSSID') > -1){
       console.log('Loading local app');
 
       has_remote_conn = false;
-      var latest_ui_version = undefined;
       var configTimeout;
-
-      var mirobot_version = 'unknown';
 
       var el = function(id){
         return document.getElementById(id);
@@ -388,7 +384,7 @@ if(wirelessConfig.clientSSID.indexOf('clientSSID') > -1){
         wirelessConfig = config;
 
         var conn = el('wifiConnState');
-        if(wirelessConfig.clientConnected === 'false'){
+        if(wirelessConfig.clientConnected === '0'){
           conn.innerHTML = '&#10007; Configure WiFi';
           conn.className = 'connState';
           checkConfig(10000);
@@ -421,7 +417,7 @@ if(wirelessConfig.clientSSID.indexOf('clientSSID') > -1){
 
       var configureWifi = function(e){
         e.preventDefault();
-        showModal('/admin/wifi.html');
+        showModal('/admin/wifi.html?arduino=' + versions.arduino);
       }
 
       var updateFirmware = function(e){
@@ -430,7 +426,7 @@ if(wirelessConfig.clientSSID.indexOf('clientSSID') > -1){
       }
 
       var setVersions = function(){
-        var versionString = '<a href="#">WiFi version: ' + wirelessConfig.version + " | Firmware version: " + mirobot_version + " | UI version: " + ui_version + '</a>';
+        var versionString = '<a href="#">WiFi version: ' + versions.wifi + " | Firmware version: " + (versions.arduino || 'unknown') + " | UI version: " + versions.ui + '</a>';
         el('version').innerHTML = versionString;
         qs('#version a').onclick = updateFirmware
       }
@@ -438,32 +434,10 @@ if(wirelessConfig.clientSSID.indexOf('clientSSID') > -1){
       var getVersion = function(){
         mirobot.version(function(state, msg){
           if(msg.msg){
-            mirobot_version = msg.msg;
+            versions.arduino = msg.msg;
           }
           setVersions();
         });
-      }
-
-      var checkUIVersion = function(){
-        if(has_remote_conn){
-          var xhr = new XMLHttpRequest();
-          
-          xhr.onreadystatechange = function(){
-            if(xhr.readyState === 4 && xhr.status === 200){
-              var res = JSON.parse(xhr.response);
-              for(var i = 0; i< res.length; i++){
-                if(!res[i].prerelease){
-                  latest_ui_version = res[i].tag_name;
-                  break;
-                }
-              }
-              setVersions();
-            }
-          }
-          
-          xhr.open('GET', 'https://api.github.com/repos/bjpirt/mirobot-ui/releases', true);
-          xhr.send();
-        }
       }
 
       var initProgram = function(){
@@ -474,7 +448,7 @@ if(wirelessConfig.clientSSID.indexOf('clientSSID') > -1){
         var mirobotHandler = function(state){
           var conn = $('#miroConnState');
           if(state === 'connected'){
-            if(mirobot_version === 'unknown'){
+            if(!versions.arduino){
               window.setTimeout(getVersion, 1000);
             }
             conn[0].innerHTML = '&#10003; Connected to Mirobot';
@@ -490,7 +464,7 @@ if(wirelessConfig.clientSSID.indexOf('clientSSID') > -1){
       var checkConfig = function(delay){
         var fn = function(){
           var xhr = new XMLHttpRequest();
-          xhr.open('get', '/wifi/settings.json', true);
+          xhr.open('get', '/admin/settings.json', true);
           xhr.onreadystatechange = function() {
             var data;
             if (xhr.readyState == 4 && xhr.status == 200) {
@@ -515,9 +489,8 @@ if(wirelessConfig.clientSSID.indexOf('clientSSID') > -1){
 
       if(hashConfig['l'] !== 'true' && window.location.hostname != '10.10.100.254'){
         // Useful in the future for adding functionality without upgrades
-        loadScript('remote.js', undefined, remote_base, function(){
+        loadScript('remote2.js', undefined, remote_base, function(){
           has_remote_conn = true;
-          checkUIVersion()
         });
       }
     }
