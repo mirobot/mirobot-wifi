@@ -14,6 +14,7 @@
 #include "captdns.h"
 #include "webpages-espfs.h"
 #include "rboot.h"
+#include "wifi.h"
 
 #ifdef ESPFS_POS
 CgiUploadEspfsParams espfsParams={
@@ -77,13 +78,9 @@ void initIO(){
 	gpio_output_set(0, 0, (1<<2), (1<<0));
 }
 
-void initWifi(){
-	wifi_set_opmode(0x03);
-}
-
 //Main routine. Initialize stdout, the I/O, filesystem and the webserver and we're done.
 void user_init(void) {
-  initWifi();
+	wifiInit();
 	uart_init(BIT_RATE_57600, BIT_RATE_115200);
 	espFsInit((void*)(0x40200000 + ESPFS_POS));
 	install_uart0_rx_handler(serialHandler);
