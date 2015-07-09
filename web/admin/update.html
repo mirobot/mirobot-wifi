@@ -58,8 +58,7 @@ p{
     <p>UI Version: <span class="current"></span></p>
     <p>Latest: <span class="latest">Checking</span></p>
   </div>
-  <p><input type="checkbox" />Use prereleases</p>
-  <p><input type="checkbox" />Enable force updates</p>
+  <p><input type="checkbox" id="prereleases"/>Use prereleases</p>
 
   <p id="msg" style="display:none"></p>
   <script>
@@ -69,7 +68,7 @@ var versions = {arduino:{current:null, latest:null, repo:'mirobot/mirobot-arduin
 
 if(versions.wifi.romSlot.indexOf('romSlot') >= 0) versions.wifi.romSlot = "0";
 if(versions.wifi.current.indexOf('version') >= 0) versions.wifi.current = "2.0.0";
-if(versions.ui.current.indexOf('version') >= 0) versions.wifi.current = "2.0.0";
+if(versions.ui.current.indexOf('version') >= 0) versions.ui.current = "2.0.0";
 versions.wifi.romSlot = Number.parseInt(versions.wifi.romSlot);
 
 var usePrereleases = false
@@ -216,7 +215,7 @@ var update = function(e){
   e.srcElement.disabled = true;
   var type = e.srcElement.parentNode.id;
   if(type == 'arduino'){
-    // Write the new firmware
+    // Write and test the new firmware
     writeFlash(versions.arduino.url, hex2bin, 'arduino', 0x76000, function(res){
       if(res){
         // Flash the arduino
@@ -273,18 +272,11 @@ var update = function(e){
         error('arduino');
       }
     });
-    // upload to flash
-    // test the flash
-    // switch over and reboot
-    // wait until it comes back
   }
 }
 
-var initVersions = function(){
-  // Pull the arduino version out of the query string
-  var match = /arduino=(\d+\.\d+\.\d+)/.exec(window.location.search)
-  versions.arduino.current = match ? match[1] : null
-  
+var checkVersions = function(){
+  console.log("Checking versions");
   for(var type in versions){
     updateVersionString(type);
     checkLatestVersion(type);
@@ -292,8 +284,17 @@ var initVersions = function(){
   }
 }
 
+var handlePrerelease = function(e){
+  usePrereleases = e.srcElement.checked;
+  checkVersions();
+}
+
 var init = function(){
-  initVersions();
+  // Pull the arduino version out of the query string
+  var match = /arduino=(\d+\.\d+\.\d+)/.exec(window.location.search)
+  versions.arduino.current = match ? match[1] : null
+  qs('#prereleases').onchange = handlePrerelease;
+  checkVersions();
 }
 
 init();
