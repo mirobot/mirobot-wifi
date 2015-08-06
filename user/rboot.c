@@ -1,6 +1,5 @@
 #include <esp8266.h>
 #include "../rboot/rboot.h"
-#include "stdout.h"
 
 // get the rboot config
 rboot_config ICACHE_FLASH_ATTR rboot_get_config() {

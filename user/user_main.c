@@ -6,7 +6,6 @@
 #include "cgiwifi.h"
 #include "cgiflash.h"
 #include "cgiupdate.h"
-#include "stdout.h"
 #include "driver/uart.h"
 #include "arduino.h"
 #include "auth.h"
@@ -73,7 +72,6 @@ void wsHandler(int conn_no, char *msg){
 
 void initIO(){
   gpio_output_set(1, 0, 1, 0);
-	PIN_FUNC_SELECT(PERIPHS_IO_MUX_GPIO2_U, FUNC_GPIO2);
 	PIN_FUNC_SELECT(PERIPHS_IO_MUX_GPIO0_U, FUNC_GPIO0);
 	gpio_output_set(0, 0, (1<<2), (1<<0));
 }
@@ -84,7 +82,6 @@ void user_init(void) {
 	uart_init(BIT_RATE_57600, BIT_RATE_115200);
 	espFsInit((void*)(0x40200000 + ESPFS_POS));
 	install_uart0_rx_handler(serialHandler);
-	//stdoutInit();
 	initIO();
 	captdnsInit();
 	httpdInit(builtInUrls, 80);
