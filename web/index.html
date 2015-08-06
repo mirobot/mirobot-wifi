@@ -421,7 +421,7 @@
 
       var updateFirmware = function(e){
         e.preventDefault();
-        if(has_remote_conn) showModal('/admin/update.html');
+        if(has_remote_conn) showModal('/admin/update.html?arduino=' + versions.arduino);
       }
 
       var setVersions = function(){
