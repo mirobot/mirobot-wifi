@@ -170,6 +170,9 @@ flash: $(TARGET_OUT) $(FW_BASE)
 flashweb: $(FW_BASE)
 	$(vecho) "curl --request POST --data-binary @firmware/mirobot-v2-ui.bin http://$(IP)/admin/updateui.cgi"
 
+flashwebfw: $(FW_BASE)
+	$(Q) ./bin/flashfw.rb $(IP)
+
 blankflash:
 	$(Q) $(ESPTOOL) --port $(ESPPORT) --baud $(ESPBAUD) write_flash 0x7E000 $(SDK_BASE)/bin/blank.bin
 
