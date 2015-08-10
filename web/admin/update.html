@@ -267,7 +267,7 @@ var fetchVersions = function(cb){
       cb();
     }
   }
-  
+
   xhr.open('GET', 'http://updates.mirobot.io/mirobot-v2/versions.json', true);
   xhr.send();
 }
@@ -280,6 +280,11 @@ var checkVersions = function(){
       qs('#' + type + ' button').onclick = update;
     }
   })
+}
+
+var handlePrerelease = function(e){
+  usePrereleases = e.srcElement.checked;
+  checkVersions();
 }
 
 var handlePrerelease = function(e){
