@@ -83,9 +83,9 @@ void ICACHE_FLASH_ATTR arduinoReadPage(int len){
 void ICACHE_FLASH_ATTR arduinoReset(){
   // Causes a delay to reset the Arduino
   for(int i=0; i<50; i++){
-    gpio_output_set(0, 1, 1, 0);
+    GPIO_OUTPUT_SET(GPIO_ID_PIN(5), 0);
   }
-  gpio_output_set(1, 0, 1, 0);
+  GPIO_OUTPUT_SET(GPIO_ID_PIN(5), 1);
 }
 
 void ICACHE_FLASH_ATTR arduinoUpdate(){

@@ -20,7 +20,7 @@ typedef struct {
 	unsigned int page;
 } arduinoUpdateState_t;
 
-
+void arduinoReset();
 bool arduinoBeginUpdate();
 char arduinoGetStatus();
 void arduinoHandleData(uint8 incoming);

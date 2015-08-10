@@ -65,8 +65,13 @@ void wsHandler(int conn_no, char *msg){
 
 void initIO(){
   gpio_output_set(1, 0, 1, 0);
-	PIN_FUNC_SELECT(PERIPHS_IO_MUX_GPIO0_U, FUNC_GPIO0);
-	gpio_output_set(0, 0, (1<<2), (1<<0));
+  // disable pullup and pulldown on GPIO5 and configure as output
+  PIN_PULLUP_DIS(PERIPHS_IO_MUX_GPIO5_U);
+  PIN_FUNC_SELECT(PERIPHS_IO_MUX_GPIO5_U, FUNC_GPIO5);
+  PIN_PULLUP_DIS(PERIPHS_IO_MUX_GPIO0_U);
+  PIN_FUNC_SELECT(PERIPHS_IO_MUX_GPIO0_U, FUNC_GPIO0);
+  // reset Arduino
+  arduinoReset();
 }
 
 //Main routine. Initialize stdout, the I/O, filesystem and the webserver and we're done.
