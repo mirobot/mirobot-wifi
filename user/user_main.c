@@ -15,13 +15,6 @@
 #include "rboot.h"
 #include "wifi.h"
 
-#ifdef ESPFS_POS
-CgiUploadEspfsParams espfsParams={
-	.espFsPos=ESPFS_POS,
-	.espFsSize=ESPFS_SIZE
-};
-#endif
-
 char inputBuffer[100];
 int inputBufferCounter = 0;
 
@@ -31,7 +24,7 @@ HttpdBuiltInUrl builtInUrls[]={
 	{"/", cgiRedirect, "/index.html"},
 	
 	// admin functions
-	{"/admin/updateui.cgi", cgiUploadEspfs, &espfsParams},
+	{"/admin/updateui.cgi", cgiUploadEspfs, NULL},
 	{"/admin/updatewifi.cgi", cgiUploadWifi, NULL},
 	{"/admin/updatearduino.cgi", cgiUploadArduino, NULL},
 	{"/admin/readflash.bin", cgiReadFlashChunk, NULL},

@@ -102,6 +102,14 @@ int ICACHE_FLASH_ATTR cgiUploadArduino(HttpdConnData *connData) {
 	return HTTPD_CGI_DONE;
 }
 
+//Cgi that allows the Arduino firmware to be updated via http
+int ICACHE_FLASH_ATTR cgiUploadEspfs(HttpdConnData *connData) {
+	if(connData->requestType == HTTPD_METHOD_POST){
+		return write_post_to_flash(connData, ESPFS_SIZE, ESPFS_POS);
+	}
+	return HTTPD_CGI_DONE;
+}
+
 static void ICACHE_FLASH_ATTR resetTimerCb(void *arg) {
 	system_restart();
 }
