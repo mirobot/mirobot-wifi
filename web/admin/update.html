@@ -62,6 +62,8 @@ p{
 
   <p id="msg" style="display:none"></p>
   <script>
+  
+var remoteVersions = undefined;
 var versions = {arduino:{current:null, latest:null, repo:'mirobot/mirobot-arduino', file:'mirobot-v2-firmware'},
                 wifi:   {current:'`version`', latest:null, repo:'mirobot/mirobot-wifi', file:'mirobot-v2-wifi', romSlot:"`romSlot`"},
                 ui:     {current:'{{version}}', latest:null, repo:'mirobot/mirobot-wifi', file:'mirobot-v2-ui'}};
@@ -94,33 +96,14 @@ var hex2bin = function(hex){
   return new Uint8Array(chars);
 }
 
-var checkLatestVersion = function(type){
-  var xhr = new XMLHttpRequest();
-  xhr.onreadystatechange = function(){
-    if(xhr.readyState === 4 && xhr.status === 200){
-      var res = JSON.parse(xhr.response);
-      for(var i = 0; i< res.length; i++){
-        if(!res[i].prerelease || usePrereleases && res[i].prerelease){
-          if(res[i].assets.length > 0){
-            for(var j=0; j<res[i].assets.length; j++){
-              if(res[i].assets[j].name.indexOf(versions[type].file) == 0){
-                versions[type].latest = res[i].tag_name.replace('v', '');
-                versions[type].url = res[i].assets[j].browser_download_url;
-                updateVersionString(type);
-                return;
-              }
-            }
-          }
-        }
-      }
-    }
+var updateVersion = function(type){
+  if(!remoteVersions) return;
+  versions[type].latest = remoteVersions.latest[type].version
+  versions[type].url = 'http://updates.mirobot.io' + remoteVersions.latest[type].assets[0]
+  if(usePrereleases && remoteVersions.prerelease[type]){
+    versions[type].latest = remoteVersions.prerelease[type].version
+    versions[type].url = 'http://updates.mirobot.io' + remoteVersions.latest[type].assets[0]
   }
-  
-  xhr.open('GET', 'https://api.github.com/repos/' + versions[type].repo + '/releases', true);
-  xhr.send();
-}
-
-var updateVersionString = function(type){
   qs('#' + type + ' .current').innerHTML = versions[type].current || 'Unknown'
   qs('#' + type + ' .latest').innerHTML = versions[type].latest || 'Checking'
   if(versions[type].latest){
@@ -152,22 +135,21 @@ var abEqual = function(ab1, ab2){
   return true;
 }
 
-var fetchURL = function(method, url, data, cors, cb){
-  cors = cors ? 'http://corsify.appspot.com/' : '';
+var fetchURL = function(method, url, data, cb){
   console.log("Fetching: " + url);
   var xhr = new XMLHttpRequest();
   xhr.overrideMimeType('text\/plain; charset=x-user-defined');
   xhr.onreadystatechange = function(){
     if(xhr.readyState === 4){
       if(xhr.status >= 200 && xhr.status < 300){
-        //get ready to send it to the ESP
+        //get ready to send it to the ESP 
         cb(xhr);
       }else{
         cb(false);
       }
     }
   }
-  xhr.open(method, cors + url, true);
+  xhr.open(method, url, true);
   if(data){
     xhr.send(data);
   }else{
@@ -183,16 +165,16 @@ var error = function(type){
 
 var writeFlash = function(url, fn, type, offset, cb){
   // fetch the new firmware
-  fetchURL('GET', url, null, true, function(res1){
+  fetchURL('GET', url, null, function(res1){
     if(!res1) return cb();
     // convert if necessary
     var data = fn ? fn(res1.response) : str2ab(res1.response);
     // upload to flash
-    fetchURL('POST', '/admin/update' + type + '.cgi', data, false, function(res2){
+    fetchURL('POST', '/admin/update' + type + '.cgi', data, function(res2){
       if(!res2) return cb();
       
       // test the flash
-      fetchURL('GET', '/admin/readflash.bin?offset=' + offset + '&length=' + data.length, null, false, function(res3){
+      fetchURL('GET', '/admin/readflash.bin?offset=' + offset + '&length=' + data.length, null, function(res3){
         if(!res3) return cb(false);
         if(abEqual(data, str2ab(res3.response))){
           return cb(true);
@@ -219,7 +201,7 @@ var update = function(e){
     writeFlash(versions.arduino.url, hex2bin, 'arduino', 0x76000, function(res){
       if(res){
         // Flash the arduino
-        fetchURL('POST', '/admin/updatearduino.cgi?flash=true', null, false, function(res){
+        fetchURL('POST', '/admin/updatearduino.cgi?flash=true', null, function(res){
           if(res){
             msg(res ? "Successfully flashed" : "Error flashing");
           }else{
@@ -259,7 +241,7 @@ var update = function(e){
       if(res){
         console.log("Success - switching over");
         // Flash the arduino
-        fetchURL('POST', '/admin/updatewifi.cgi?commit=true', null, false, function(res){
+        fetchURL('POST', '/admin/updatewifi.cgi?commit=true', null, function(res){
           if(res){
             msg(res ? "Successfully flashed" : "Error flashing");
           }else{
@@ -275,13 +257,29 @@ var update = function(e){
   }
 }
 
+var fetchVersions = function(cb){
+  if(remoteVersions) return cb();
+  var xhr = new XMLHttpRequest();
+  xhr.onreadystatechange = function(){
+    if(xhr.readyState === 4 && xhr.status === 200){
+      var res = JSON.parse(xhr.response);
+      remoteVersions = res;
+      cb();
+    }
+  }
+  
+  xhr.open('GET', 'http://updates.mirobot.io/mirobot-v2/versions.json', true);
+  xhr.send();
+}
+
 var checkVersions = function(){
   console.log("Checking versions");
-  for(var type in versions){
-    updateVersionString(type);
-    checkLatestVersion(type);
-    qs('#' + type + ' button').onclick = update;
-  }
+  fetchVersions(function(){
+    for(var type in versions){
+      updateVersion(type);
+      qs('#' + type + ' button').onclick = update;
+    }
+  })
 }
 
 var handlePrerelease = function(e){
