@@ -28,7 +28,7 @@ void ICACHE_FLASH_ATTR wifiInit()
   apConfig.ssid_len = strlen(ssid);
   apConfig.authmode = AUTH_OPEN;
   apConfig.channel = 7;
-  apConfig.max_connection = 1;
+  apConfig.max_connection = 3;
   apConfig.ssid_hidden = 0;
   wifi_softap_set_config(&apConfig);
 }
