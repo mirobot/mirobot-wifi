@@ -191,6 +191,12 @@ var msg = function(msg){
   console.log(msg);
 }
 
+var reload = function(delay){
+  window.setTimeout(function(){
+    window.location.reload(true);
+  }, delay);
+}
+
 var update = function(e){
   console.log(e)
   e.srcElement.innerHTML = "Updating";
@@ -203,7 +209,7 @@ var update = function(e){
         // Flash the arduino
         fetchURL('POST', '/admin/updatearduino.cgi?flash=true', null, function(res){
           if(res){
-            msg(res ? "Successfully flashed" : "Error flashing");
+            msg("Successfully flashed");
           }else{
             error('arduino');
             msg("Error flashing");
@@ -219,6 +225,7 @@ var update = function(e){
     writeFlash(versions.ui.url, false, 'ui', 0x70000, function(res){
       if(res){
         msg("Successfully updated UI");
+        reload(5000);
       }else{
         msg("Error updating UI");
       }
@@ -243,7 +250,8 @@ var update = function(e){
         // Flash the arduino
         fetchURL('POST', '/admin/updatewifi.cgi?commit=true', null, function(res){
           if(res){
-            msg(res ? "Successfully flashed" : "Error flashing");
+            msg("Successfully flashed");
+            reload(10000);
           }else{
             error('arduino');
             msg("Error flashing");
