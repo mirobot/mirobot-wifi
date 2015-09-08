@@ -8,9 +8,10 @@ var Mirobot = function(url){
 Mirobot.prototype = {
 
   connected: false,
+  error: false,
 
   connect: function(){
-    if(!this.connected){
+    if(!this.connected && !this.error){
       var self = this;
       this.ws = new WebSocket(this.url);
       this.ws.onmessage = function(ws_msg){self.handle_ws(ws_msg)};
@@ -172,7 +173,11 @@ Mirobot.prototype = {
         this.cbs[msg.id]('complete', msg);
         delete this.cbs[msg.id];
       }
-    } 
+    }
+    if(msg.status && msg.status === 'error'){
+      this.error = true;
+      this.broadcast('error');
+    }
   },
   
   robot_state: 'idle',

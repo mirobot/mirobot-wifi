@@ -6,8 +6,6 @@
 
 //Max length of request head
 #define MAX_HEAD_LEN 1024
-//Max amount of connections
-#define MAX_CONN 1
 
 //Private data for http connection
 struct WsPriv {
@@ -17,8 +15,8 @@ struct WsPriv {
 };
 
 //Connection pool
-static WsPriv connPrivData[MAX_CONN];
-static WsConnData connData[MAX_CONN];
+static WsPriv connPrivData;
+static WsConnData connData;
 
 //Listening connection data
 static struct espconn wsConn;
@@ -30,21 +28,6 @@ wsHandler handlerCb;
 char temp_buff[130];
 
 char webSocketKey[] = "------------------------258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
-
-//Looks up the connData info for a specific esp connection
-static WsConnData ICACHE_FLASH_ATTR *wsFindConnData(void *arg) {
-	int i;
-	for (i=0; i<MAX_CONN; i++) {
-		if (connData[i].conn==(struct espconn *)arg) return &connData[i];
-	}
-	os_printf("FindConnData: Huh? Couldn't find connection for %p\n", arg);
-	return NULL; //WtF?
-}
-
-//Retires a connection for re-use
-static void ICACHE_FLASH_ATTR wsRetireConn(WsConnData *conn) {
-	conn->conn=NULL;
-}
 
 void ICACHE_FLASH_ATTR wsSendUpgrade(WsConnData *conn) {
 	uint8 *hash;
@@ -163,50 +146,48 @@ static void ICACHE_FLASH_ATTR wsRecvCb(void *arg, char *data, unsigned short len
 	int x;
 	char *p, *e;
 	char wsBuff[126];
-	WsConnData *conn=wsFindConnData(arg);
-	if (conn==NULL) return;
 	
-  if(conn->connType == WEBSOCKET){
+  if(connData.connType == WEBSOCKET){
     // decode the websocket frame and send data
-    if(parseWSFrame(wsBuff, data, len, conn)){
+    if(parseWSFrame(wsBuff, data, len, &connData)){
       handlerCb(0, wsBuff);
     }
-  }else if(conn->connType == RAW){
+  }else if(connData.connType == RAW){
     // just send the data straight through
     handlerCb(0, data);
-  }else if(conn->connType == UNKNOWN){
+  }else if(connData.connType == UNKNOWN){
 	  // We need to see if the first line of data is a websocket get request
     if(len > 3 && !os_strncmp(data, "GET ", 4)){
       // It looks like it might be a HTTP request
       for (x=0; x<len; x++) {
-        if (conn->priv->headPos!=-1) {
+        if (connData.priv->headPos!=-1) {
           //This byte is a header byte.
-          if (conn->priv->headPos!=MAX_HEAD_LEN) conn->priv->data[conn->priv->headPos++]=data[x];
-          conn->priv->data[conn->priv->headPos]=0;
+          if (connData.priv->headPos!=MAX_HEAD_LEN) connData.priv->data[connData.priv->headPos++]=data[x];
+          connData.priv->data[connData.priv->headPos]=0;
           //Scan for \r\n\r\n
-          if (data[x]=='\n' && (char *)os_strstr(conn->priv->data, "\r\n\r\n")!=NULL) {
+          if (data[x]=='\n' && (char *)os_strstr(connData.priv->data, "\r\n\r\n")!=NULL) {
             // The headers have ended so let's parse them
             //Find end of next header line
-            p=conn->priv->data;
-            while(p<(&conn->priv->data[conn->priv->headPos-4])) {
+            p=connData.priv->data;
+            while(p<(&connData.priv->data[connData.priv->headPos-4])) {
               e=(char *)os_strstr(p, "\r\n");
               if (e==NULL) break;
               e[0]=0;
-              wsParseHeader(p, conn);
+              wsParseHeader(p, &connData);
               p=e+2;
             }
             //If we don't need to receive post data, we can send the response now.
-            if(!strcmp(conn->url, "/websocket") && conn->key != NULL){
+            if(!strcmp(connData.url, "/websocket") && connData.key != NULL){
               // it's a legitimate websocket request so let's respond accordingly
-              conn->connType = WEBSOCKET;
-              wsSendUpgrade(conn);
+              connData.connType = WEBSOCKET;
+              wsSendUpgrade(&connData);
               //if (conn->postLen==0) {
               //  httpdSendResp(conn);
               //  }
             }else{
               // doesn't look legit so let's give a 404 for now
             }
-            conn->priv->headPos=-1; //Indicate we're done with the headers.
+            connData.priv->headPos=-1; //Indicate we're done with the headers.
           }else{
             // it doesn't look like a http request so let's just send the data through
           }
@@ -214,59 +195,48 @@ static void ICACHE_FLASH_ATTR wsRecvCb(void *arg, char *data, unsigned short len
       }
     }else{
       // Looks like a raw socket connection
-      conn->connType = RAW;
+      connData.connType = RAW;
       uart0_tx_buffer((uint8 *)data, len);
     }
   }
 }
 
 static void ICACHE_FLASH_ATTR wsReconCb(void *arg, sint8 err) {
-	WsConnData *conn=wsFindConnData(arg);
 	os_printf("ReconCb\n");
-	if (conn==NULL) return;
-	//Yeah... No idea what to do here. ToDo: figure something out.
 }
 
 static void ICACHE_FLASH_ATTR wsDisconCb(void *arg) {
 #if 0
 	//Stupid esp sdk passes through wrong arg here, namely the one of the *listening* socket.
 	//If it ever gets fixed, be sure to update the code in this snippet; it's probably out-of-date.
-	WsConnData *conn=wsFindConnData(arg);
-	os_printf("Disconnected, conn=%p\n", conn);
-	if (conn==NULL) return;
-	conn->conn=NULL;
+	os_printf("Disconnected, conn=%p\n", &connData);
+	connData.conn=NULL;
 #endif
-	//Just look at all the sockets and kill the slot if needed.
-	int i;
-	for (i=0; i<MAX_CONN; i++) {
-		if (connData[i].conn!=NULL) {
-			if (connData[i].conn->state==ESPCONN_NONE || connData[i].conn->state==ESPCONN_CLOSE) {
-				connData[i].conn=NULL;
-				wsRetireConn(&connData[i]);
-			}
-		}
-	}
+	//Kill the slot if needed.
+  if (connData.conn!=NULL) {
+    if (connData.conn->state==ESPCONN_NONE || connData.conn->state==ESPCONN_CLOSE) {
+      connData.conn=NULL;
+    }
+  }
 }
-
 
 static void ICACHE_FLASH_ATTR wsConnectCb(void *arg) {
 	struct espconn *conn=arg;
-	int i;
-	//Find empty conndata in pool
-	for (i=0; i<MAX_CONN; i++) if (connData[i].conn==NULL) break;
-	os_printf("Con req, conn=%p, pool slot %d\n", conn, i);
-	connData[i].priv=&connPrivData[i];
-	if (i==MAX_CONN) {
-		os_printf("Conn pool overflow!\n");
-		espconn_disconnect(conn);
-		return;
+	// Kill the existing connection if necessary
+	if(connData.conn!=NULL){
+	  os_printf("Other socket is in use, disconnecting\n");
+	  wsSend("{\"status\":\"error\",\"msg\":\"Too many connections\"}");
+	  espconn_disconnect(connData.conn);
 	}
-	connData[i].conn=conn;
-	connData[i].priv->headPos=0;
-	connData[i].priv->postPos=0;
-	connData[i].connType = UNKNOWN;
-	connData[i].url = NULL;
-	connData[i].key = NULL;
+
+	os_printf("WS req, conn=%p\n", conn);
+	connData.priv=&connPrivData;
+	connData.conn=conn;
+	connData.priv->headPos=0;
+	connData.priv->postPos=0;
+	connData.connType = UNKNOWN;
+	connData.url = NULL;
+	connData.key = NULL;
 
 	espconn_regist_recvcb(conn, wsRecvCb);
 	espconn_regist_reconcb(conn, wsReconCb);
@@ -274,19 +244,17 @@ static void ICACHE_FLASH_ATTR wsConnectCb(void *arg) {
 	espconn_regist_sentcb(conn, wsSentCb);
 }
 
-void ICACHE_FLASH_ATTR wsSend(int conn_no, char *msg){
-  if(connData[0].connType == WEBSOCKET){
+void ICACHE_FLASH_ATTR wsSend(char *msg){
+  if(connData.connType == WEBSOCKET){
     os_sprintf(temp_buff, "%c%c%s", 0x81, (strlen(msg) & 0x7F), msg);
-    espconn_sent(connData[conn_no].conn, (uint8 *)temp_buff, strlen(temp_buff));
+    espconn_sent(connData.conn, (uint8 *)temp_buff, strlen(temp_buff));
   }else{
-    espconn_sent(connData[conn_no].conn, (uint8 *)msg, strlen(msg));
+    espconn_sent(connData.conn, (uint8 *)msg, strlen(msg));
   }
 }
 
 void ICACHE_FLASH_ATTR wsInit(int port, void *handler){
-	for (int i=0; i<MAX_CONN; i++) {
-		connData[i].conn=NULL;
-	}
+  connData.conn=NULL;
 	wsConn.type=ESPCONN_TCP;
 	wsConn.state=ESPCONN_NONE;
 	wsTcp.local_port=port;

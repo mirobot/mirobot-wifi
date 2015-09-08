@@ -48,7 +48,7 @@ void serialHandler(uint8 incoming){
       if(inputBufferCounter > 0){
         // Send the string
         inputBuffer[inputBufferCounter] = 0;
-        wsSend(0, (char *)inputBuffer);
+        wsSend((char *)inputBuffer);
         inputBufferCounter = 0;
       }
     }else{

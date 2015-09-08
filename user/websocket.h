@@ -28,6 +28,6 @@ struct WsConnData {
 };
 
 void ICACHE_FLASH_ATTR wsInit(int port, void *handler);
-void ICACHE_FLASH_ATTR wsSend(int conn_no, char *msg);
+void ICACHE_FLASH_ATTR wsSend(char *msg);
 
 #endif

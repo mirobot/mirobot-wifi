@@ -453,7 +453,14 @@
             conn[0].innerHTML = '&#10003; Connected to Mirobot';
             conn.addClass('connected');
           }else if(state === 'disconnected'){
-            conn[0].innerHTML = '&#10007; Reconnecting to Mirobot';
+            if(mirobot.error){
+              conn[0].innerHTML = '&#10007; Too many connections to Mirobot';
+            }else{
+              conn[0].innerHTML = '&#10007; Connecting to Mirobot';
+            }
+            conn.removeClass('connected');
+          }else if(state === 'error'){
+            conn[0].innerHTML = '&#10007; Too many connections to Mirobot';
             conn.removeClass('connected');
           }
         }
