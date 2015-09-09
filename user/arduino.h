@@ -16,8 +16,8 @@ typedef enum {
 } arduinoState_t;
 
 typedef struct {
-	arduinoState_t state;
-	unsigned int page;
+  arduinoState_t state;
+  unsigned int page;
 } arduinoUpdateState_t;
 
 void arduinoReset();

@@ -9,12 +9,12 @@
 #define BLOCK_LENGTH 64
 
 typedef struct sha1nfo {
-	uint32 buffer[BLOCK_LENGTH/4];
-	uint32 state[HASH_LENGTH/4];
-	uint32 byteCount;
-	uint8 bufferOffset;
-	uint8 keyBuffer[BLOCK_LENGTH];
-	uint8 innerHash[HASH_LENGTH];
+  uint32 buffer[BLOCK_LENGTH/4];
+  uint32 state[HASH_LENGTH/4];
+  uint32 byteCount;
+  uint8 bufferOffset;
+  uint8 keyBuffer[BLOCK_LENGTH];
+  uint8 innerHash[HASH_LENGTH];
 } sha1nfo;
 
 /* public API - prototypes - TODO: doxygen*/

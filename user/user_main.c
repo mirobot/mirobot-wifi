@@ -20,24 +20,24 @@ int inputBufferCounter = 0;
 
 // This is the main url->function dispatching data struct.
 HttpdBuiltInUrl builtInUrls[]={
-	//{"*", cgiRedirectApClientToHostname, "mirobot.local"},
-	{"/", cgiRedirect, "/index.html"},
-	
-	// admin functions
-	{"/admin/updateui.cgi", cgiUploadEspfs, NULL},
-	{"/admin/updatewifi.cgi", cgiUploadWifi, NULL},
-	{"/admin/updatearduino.cgi", cgiUploadArduino, NULL},
-	{"/admin/readflash.bin", cgiReadFlashChunk, NULL},
-	{"/admin/settings.json", cgiEspFsTemplate, tplWlanInfo},
-	{"/admin/update.html", cgiEspFsTemplate, tplWlanInfo},
-	{"/admin/wifi.html", cgiEspFsTemplate, tplWlanInfo},
-	{"/admin/wifiscan.cgi", cgiWiFiScan, NULL},
-	{"/admin/settings.cgi", cgiWifiSettings, NULL},
-	
-	{"/index.html", cgiEspFsTemplate, tplWlanInfo},
+  //{"*", cgiRedirectApClientToHostname, "mirobot.local"},
+  {"/", cgiRedirect, "/index.html"},
+  
+  // admin functions
+  {"/admin/updateui.cgi", cgiUploadEspfs, NULL},
+  {"/admin/updatewifi.cgi", cgiUploadWifi, NULL},
+  {"/admin/updatearduino.cgi", cgiUploadArduino, NULL},
+  {"/admin/readflash.bin", cgiReadFlashChunk, NULL},
+  {"/admin/settings.json", cgiEspFsTemplate, tplWlanInfo},
+  {"/admin/update.html", cgiEspFsTemplate, tplWlanInfo},
+  {"/admin/wifi.html", cgiEspFsTemplate, tplWlanInfo},
+  {"/admin/wifiscan.cgi", cgiWiFiScan, NULL},
+  {"/admin/settings.cgi", cgiWifiSettings, NULL},
+  
+  {"/index.html", cgiEspFsTemplate, tplWlanInfo},
 
-	{"*", cgiEspFsHook, NULL}, //Catch-all cgi function for the filesystem
-	{NULL, NULL, NULL}
+  {"*", cgiEspFsHook, NULL}, //Catch-all cgi function for the filesystem
+  {NULL, NULL, NULL}
 };
 
 void serialHandler(uint8 incoming){
@@ -76,13 +76,13 @@ void initIO(){
 
 //Main routine. Initialize stdout, the I/O, filesystem and the webserver and we're done.
 void user_init(void) {
-	wifiInit();
-	uart_init(BIT_RATE_57600, BIT_RATE_115200);
-	espFsInit((void*)(0x40200000 + ESPFS_POS));
-	install_uart0_rx_handler(serialHandler);
-	initIO();
-	captdnsInit();
-	httpdInit(builtInUrls, 80);
-	wsInit(8899, wsHandler);
-	os_printf("\nReady\n");
+  wifiInit();
+  uart_init(BIT_RATE_57600, BIT_RATE_115200);
+  espFsInit((void*)(0x40200000 + ESPFS_POS));
+  install_uart0_rx_handler(serialHandler);
+  initIO();
+  captdnsInit();
+  httpdInit(builtInUrls, 80);
+  wsInit(8899, wsHandler);
+  os_printf("\nReady\n");
 }

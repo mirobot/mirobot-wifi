@@ -9,9 +9,9 @@
 
 //Private data for http connection
 struct WsPriv {
-	char data[MAX_HEAD_LEN];
-	int headPos;
-	int postPos;
+  char data[MAX_HEAD_LEN];
+  int headPos;
+  int postPos;
 };
 
 //Connection pool
@@ -30,10 +30,10 @@ char temp_buff[130];
 char webSocketKey[] = "------------------------258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
 
 void ICACHE_FLASH_ATTR wsSendUpgrade(WsConnData *conn) {
-	uint8 *hash;
+  uint8 *hash;
   char b64Result[31];
   sha1nfo s;
-	int len;
+  int len;
 
   strncpy(webSocketKey, conn->key, 24);
   
@@ -52,15 +52,15 @@ void ICACHE_FLASH_ATTR wsSendUpgrade(WsConnData *conn) {
 
 //Send a http header.
 void ICACHE_FLASH_ATTR wsHeader(WsConnData *conn, const char *field, const char *val) {
-	char buff[256];
-	int l;
-	l=os_sprintf(buff, "%s: %s\r\n", field, val);
-	espconn_sent(conn->conn, (uint8 *)buff, l);
+  char buff[256];
+  int l;
+  l=os_sprintf(buff, "%s: %s\r\n", field, val);
+  espconn_sent(conn->conn, (uint8 *)buff, l);
 }
 
 //Finish the headers.
 void ICACHE_FLASH_ATTR wsEndHeaders(WsConnData *conn) {
-	espconn_sent(conn->conn, (uint8 *)"\r\n", 2);
+  espconn_sent(conn->conn, (uint8 *)"\r\n", 2);
 }
 
 //Callback called when the data on a socket has been successfully
@@ -70,28 +70,28 @@ static void ICACHE_FLASH_ATTR wsSentCb(void *arg) {
 
 //Parse a line of header data and modify the connection data accordingly.
 static void ICACHE_FLASH_ATTR wsParseHeader(char *h, WsConnData *conn) {
-	int i;
+  int i;
   char *e;
-	if (os_strncmp(h, "GET ", 4)==0) {
-		//Skip past the space after POST/GET
-		i = 0;
-		while (h[i] != ' ') i++;
-		conn->url = h+i+1;
+  if (os_strncmp(h, "GET ", 4)==0) {
+    //Skip past the space after POST/GET
+    i = 0;
+    while (h[i] != ' ') i++;
+    conn->url = h+i+1;
 
-		//Figure out end of url.
-		e = (char*)os_strstr(conn->url, " ");
-		if (e == NULL) return; //wtf?
-		*e = 0; //terminate url part
-	} else if (os_strncmp(h, "Sec-WebSocket-Key: ", 19)==0) {
-		//Skip past the space after POST/GET
-		i = 0;
-		while (h[i] != ' ') i++;
-		conn->key = h+i+1;
-		//Figure out end of url.
-		e = (char*)os_strstr(conn->url, "\r");
-		if (e == NULL) return; //wtf?
-		*e = 0; //terminate url part
-	}
+    //Figure out end of url.
+    e = (char*)os_strstr(conn->url, " ");
+    if (e == NULL) return; //wtf?
+    *e = 0; //terminate url part
+  } else if (os_strncmp(h, "Sec-WebSocket-Key: ", 19)==0) {
+    //Skip past the space after POST/GET
+    i = 0;
+    while (h[i] != ' ') i++;
+    conn->key = h+i+1;
+    //Figure out end of url.
+    e = (char*)os_strstr(conn->url, "\r");
+    if (e == NULL) return; //wtf?
+    *e = 0; //terminate url part
+  }
 }
 
 bool parseWSFrame(char* out, char* frame, unsigned short len, WsConnData *conn){
@@ -143,10 +143,10 @@ bool parseWSFrame(char* out, char* frame, unsigned short len, WsConnData *conn){
 
 //Callback called when there's data available on a socket.
 static void ICACHE_FLASH_ATTR wsRecvCb(void *arg, char *data, unsigned short len) {
-	int x;
-	char *p, *e;
-	char wsBuff[126];
-	
+  int x;
+  char *p, *e;
+  char wsBuff[126];
+  
   if(connData.connType == WEBSOCKET){
     // decode the websocket frame and send data
     if(parseWSFrame(wsBuff, data, len, &connData)){
@@ -156,7 +156,7 @@ static void ICACHE_FLASH_ATTR wsRecvCb(void *arg, char *data, unsigned short len
     // just send the data straight through
     handlerCb(0, data);
   }else if(connData.connType == UNKNOWN){
-	  // We need to see if the first line of data is a websocket get request
+    // We need to see if the first line of data is a websocket get request
     if(len > 3 && !os_strncmp(data, "GET ", 4)){
       // It looks like it might be a HTTP request
       for (x=0; x<len; x++) {
@@ -202,17 +202,17 @@ static void ICACHE_FLASH_ATTR wsRecvCb(void *arg, char *data, unsigned short len
 }
 
 static void ICACHE_FLASH_ATTR wsReconCb(void *arg, sint8 err) {
-	os_printf("ReconCb\n");
+  os_printf("ReconCb\n");
 }
 
 static void ICACHE_FLASH_ATTR wsDisconCb(void *arg) {
 #if 0
-	//Stupid esp sdk passes through wrong arg here, namely the one of the *listening* socket.
-	//If it ever gets fixed, be sure to update the code in this snippet; it's probably out-of-date.
-	os_printf("Disconnected, conn=%p\n", &connData);
-	connData.conn=NULL;
+  //Stupid esp sdk passes through wrong arg here, namely the one of the *listening* socket.
+  //If it ever gets fixed, be sure to update the code in this snippet; it's probably out-of-date.
+  os_printf("Disconnected, conn=%p\n", &connData);
+  connData.conn=NULL;
 #endif
-	//Kill the slot if needed.
+  //Kill the slot if needed.
   if (connData.conn!=NULL) {
     if (connData.conn->state==ESPCONN_NONE || connData.conn->state==ESPCONN_CLOSE) {
       connData.conn=NULL;
@@ -221,27 +221,27 @@ static void ICACHE_FLASH_ATTR wsDisconCb(void *arg) {
 }
 
 static void ICACHE_FLASH_ATTR wsConnectCb(void *arg) {
-	struct espconn *conn=arg;
-	// Kill the existing connection if necessary
-	if(connData.conn!=NULL){
-	  os_printf("Other socket is in use, disconnecting\n");
-	  wsSend("{\"status\":\"error\",\"msg\":\"Too many connections\"}");
-	  espconn_disconnect(connData.conn);
-	}
+  struct espconn *conn=arg;
+  // Kill the existing connection if necessary
+  if(connData.conn!=NULL){
+    os_printf("Other socket is in use, disconnecting\n");
+    wsSend("{\"status\":\"error\",\"msg\":\"Too many connections\"}");
+    espconn_disconnect(connData.conn);
+  }
 
-	os_printf("WS req, conn=%p\n", conn);
-	connData.priv=&connPrivData;
-	connData.conn=conn;
-	connData.priv->headPos=0;
-	connData.priv->postPos=0;
-	connData.connType = UNKNOWN;
-	connData.url = NULL;
-	connData.key = NULL;
+  os_printf("WS req, conn=%p\n", conn);
+  connData.priv=&connPrivData;
+  connData.conn=conn;
+  connData.priv->headPos=0;
+  connData.priv->postPos=0;
+  connData.connType = UNKNOWN;
+  connData.url = NULL;
+  connData.key = NULL;
 
-	espconn_regist_recvcb(conn, wsRecvCb);
-	espconn_regist_reconcb(conn, wsReconCb);
-	espconn_regist_disconcb(conn, wsDisconCb);
-	espconn_regist_sentcb(conn, wsSentCb);
+  espconn_regist_recvcb(conn, wsRecvCb);
+  espconn_regist_reconcb(conn, wsReconCb);
+  espconn_regist_disconcb(conn, wsDisconCb);
+  espconn_regist_sentcb(conn, wsSentCb);
 }
 
 void ICACHE_FLASH_ATTR wsSend(char *msg){
@@ -255,14 +255,14 @@ void ICACHE_FLASH_ATTR wsSend(char *msg){
 
 void ICACHE_FLASH_ATTR wsInit(int port, void *handler){
   connData.conn=NULL;
-	wsConn.type=ESPCONN_TCP;
-	wsConn.state=ESPCONN_NONE;
-	wsTcp.local_port=port;
-	wsConn.proto.tcp=&wsTcp;
-	handlerCb = handler;
+  wsConn.type=ESPCONN_TCP;
+  wsConn.state=ESPCONN_NONE;
+  wsTcp.local_port=port;
+  wsConn.proto.tcp=&wsTcp;
+  handlerCb = handler;
 
-	os_printf("Httpd init, conn=%p\n", &wsConn);
-	espconn_regist_connectcb(&wsConn, wsConnectCb);
-	espconn_accept(&wsConn);
-	espconn_regist_time(&wsConn, 28800, 0);
+  os_printf("Httpd init, conn=%p\n", &wsConn);
+  espconn_regist_connectcb(&wsConn, wsConnectCb);
+  espconn_accept(&wsConn);
+  espconn_regist_time(&wsConn, 28800, 0);
 }

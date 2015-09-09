@@ -7,10 +7,10 @@ static uint8_t macaddr[6];
 
 void ICACHE_FLASH_ATTR wifiInit()
 {
-	struct softap_config apConfig;
+  struct softap_config apConfig;
   struct ip_info info;
 
-	if (wifi_get_opmode() != STATIONAP_MODE) wifi_set_opmode(STATIONAP_MODE);
+  if (wifi_get_opmode() != STATIONAP_MODE) wifi_set_opmode(STATIONAP_MODE);
 
   IP4_ADDR(&info.ip, 10, 10, 100, 254);
   IP4_ADDR(&info.gw, 10, 10, 100, 1);
