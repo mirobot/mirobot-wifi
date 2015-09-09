@@ -64,9 +64,9 @@ p{
   <script>
   
 var remoteVersions = undefined;
-var versions = {arduino:{current:null, latest:null, repo:'mirobot/mirobot-arduino', file:'mirobot-v2-firmware'},
-                wifi:   {current:'`version`', latest:null, repo:'mirobot/mirobot-wifi', file:'mirobot-v2-wifi', romSlot:"`romSlot`"},
-                ui:     {current:'{{version}}', latest:null, repo:'mirobot/mirobot-wifi', file:'mirobot-v2-ui'}};
+var versions = {arduino:{current:null, latest:null, file:'mirobot-v2-firmware'},
+                wifi:   {current:'`version`', latest:null, file:'mirobot-v2-wifi', romSlot:"`romSlot`"},
+                ui:     {current:'{{version}}', latest:null, file:'mirobot-v2-ui'}};
 
 if(versions.wifi.romSlot.indexOf('romSlot') >= 0) versions.wifi.romSlot = "0";
 if(versions.wifi.current.indexOf('version') >= 0) versions.wifi.current = "2.0.0";
