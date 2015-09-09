@@ -261,7 +261,7 @@ void ICACHE_FLASH_ATTR wsInit(int port, void *handler){
   wsConn.proto.tcp=&wsTcp;
   handlerCb = handler;
 
-  os_printf("Httpd init, conn=%p\n", &wsConn);
+  os_printf("\nWS init, conn=%p\n", &wsConn);
   espconn_regist_connectcb(&wsConn, wsConnectCb);
   espconn_accept(&wsConn);
   espconn_regist_time(&wsConn, 28800, 0);
