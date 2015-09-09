@@ -63,7 +63,7 @@ void wsHandler(int conn_no, char *msg){
   uart0_sendStr("\r\n");
 }
 
-void initIO(){
+void ioInit(){
   gpio_output_set(1, 0, 1, 0);
   // disable pullup and pulldown on GPIO5 and configure as output
   PIN_PULLUP_DIS(PERIPHS_IO_MUX_GPIO5_U);
@@ -80,7 +80,7 @@ void user_init(void) {
   uart_init(BIT_RATE_57600, BIT_RATE_115200);
   espFsInit((void*)(0x40200000 + ESPFS_POS));
   install_uart0_rx_handler(serialHandler);
-  initIO();
+  ioInit();
   captdnsInit();
   httpdInit(builtInUrls, 80);
   wsInit(8899, wsHandler);
