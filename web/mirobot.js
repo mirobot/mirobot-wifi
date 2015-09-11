@@ -9,13 +9,18 @@ Mirobot.prototype = {
 
   connected: false,
   error: false,
+  timeoutTimer: undefined,
 
   connect: function(){
     if(!this.connected && !this.error){
       var self = this;
       this.ws = new WebSocket(this.url);
       this.ws.onmessage = function(ws_msg){self.handle_ws(ws_msg)};
-      this.ws.onopen = function(){ self.setConnectedState(true)}
+      this.ws.onopen = function(){
+        self.version(function(){
+          self.setConnectedState(true);
+        });
+      }
       this.ws.onerror = function(err){self.handleError(err)}
       this.ws.onclose = function(err){self.handleError(err)}
     }
@@ -38,7 +43,7 @@ Mirobot.prototype = {
         self.connect();
         self.reconnectTimer = setInterval(function(){
           self.connect();
-        }, 1000);
+        }, 5000);
       }
     }
   },
@@ -54,8 +59,12 @@ Mirobot.prototype = {
   },
 
   handleError: function(err){
-    if(err instanceof CloseEvent){
+    if(err instanceof CloseEvent || err === 'Timeout'){
+      if(this.ws.readyState === WebSocket.OPEN){
+        this.ws.close()
+      }
       this.setConnectedState(false);
+      this.msg_stack = [];
     }else{
       console.log(err);
     }
@@ -120,36 +129,38 @@ Mirobot.prototype = {
     this.send({cmd:'version'}, cb);
   },
 
-  send: function(msg, cb){
+  send: function(msg, cb, timeout){
     msg.id = Math.random().toString(36).substr(2, 10)
     if(cb){
       this.cbs[msg.id] = cb;
     }
     if(msg.arg){ msg.arg = msg.arg.toString(); }
     if(['stop', 'pause', 'resume', 'ping', 'version'].indexOf(msg.cmd) >= 0){
-      console.log(msg);
-      this.ws.send(JSON.stringify(msg));
+      this.send_msg(msg, true);
     }else{
-      this.push_msg(msg);
+      this.msg_stack.push(msg);
+      this.process_msg_queue();
     }
   },
   
-  push_msg: function(msg){
-    this.msg_stack.push(msg);
-    this.run_stack();
+  send_msg: function(msg){
+    var self = this;
+    console.log(msg);
+    this.ws.send(JSON.stringify(msg));
+    this.timeoutTimer = window.setTimeout(function(){ self.handleError("Timeout") }, 3000);
   },
   
-  run_stack: function(){
+  process_msg_queue: function(){
     if(this.robot_state === 'idle' && this.msg_stack.length > 0){
       this.robot_state = 'receiving';
-      console.log(this.msg_stack[0]);
-      this.ws.send(JSON.stringify(this.msg_stack[0]));
+      this.send_msg(this.msg_stack[0]);
     }
   },
   
   handle_ws: function(ws_msg){
     msg = JSON.parse(ws_msg.data);
     console.log(msg);
+    clearTimeout(this.timeoutTimer);
     if(this.msg_stack.length > 0 && this.msg_stack[0].id == msg.id){
       if(msg.status === 'accepted'){
         if(this.cbs[msg.id]){
@@ -166,7 +177,7 @@ Mirobot.prototype = {
           this.broadcast('program_complete');
         }
         this.robot_state = 'idle';
-        this.run_stack();
+        this.process_msg_queue();
       }
     }else{
       if(this.cbs[msg.id]){
@@ -174,7 +185,7 @@ Mirobot.prototype = {
         delete this.cbs[msg.id];
       }
     }
-    if(msg.status && msg.status === 'error'){
+    if(msg.status && msg.status === 'error' && msg.msg === 'Too many connections'){
       this.error = true;
       this.broadcast('error');
     }

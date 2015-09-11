@@ -184,6 +184,9 @@
     .connState.connected{
       color:#33D121;
     }
+    .connState.initial{
+      color:#666;
+    }
     #miroConnState{
       top:50px;
     }
@@ -285,7 +288,7 @@
   <div id="header">
     <img src="logo.png">
     <a href="#" id="wifiConnState" class="connState"></a>
-    <span id="miroConnState" class="connState"></span>
+    <span id="miroConnState" class="connState initial">Connecting to Mirobot</span>
     <span id="version"></span>
   </div>
   <div id="configFrame" class="modal" style="display:none">
@@ -456,13 +459,14 @@
             if(mirobot.error){
               conn[0].innerHTML = '&#10007; Too many connections to Mirobot';
             }else{
-              conn[0].innerHTML = '&#10007; Connecting to Mirobot';
+              conn[0].innerHTML = '&#10007; Couldn\'t connect to Mirobot';
             }
             conn.removeClass('connected');
           }else if(state === 'error'){
             conn[0].innerHTML = '&#10007; Too many connections to Mirobot';
             conn.removeClass('connected');
           }
+          conn.removeClass('initial');
         }
         mirobot.addListener(mirobotHandler);
       }
