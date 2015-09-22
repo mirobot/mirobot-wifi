@@ -3,6 +3,9 @@ var Mirobot = function(url){
   this.connect();
   this.cbs = {};
   this.listeners = [];
+  this.sensorState = {follow: null, collide: null};
+  this.collideListening = false;
+  this.followListening = false;
 }
 
 Mirobot.prototype = {
@@ -14,6 +17,7 @@ Mirobot.prototype = {
   connect: function(){
     if(!this.connected && !this.error){
       var self = this;
+      this.has_connected = false;
       this.ws = new WebSocket(this.url);
       this.ws.onmessage = function(ws_msg){self.handle_ws(ws_msg)};
       this.ws.onopen = function(){
@@ -23,25 +27,34 @@ Mirobot.prototype = {
       }
       this.ws.onerror = function(err){self.handleError(err)}
       this.ws.onclose = function(err){self.handleError(err)}
+      this.connTimeout = window.setTimeout(function(){
+        if(!self.connected){
+          self.ws.close();
+        }
+      }, 1000);
     }
   },
 
   setConnectedState: function(state){
     var self = this;
+    clearTimeout(self.connTimeout);
     self.connected = state;
-    setTimeout(function(){
-      self.broadcast(self.connected ? 'connected' : 'disconnected');
-    }, 500);
+    if(state){ self.has_connected = true; }
+    if(self.has_connected){
+      setTimeout(function(){
+        self.broadcast(self.connected ? 'connected' : 'disconnected');
+      }, 500);
+    }
     // Try to auto reconnect if disconnected
     if(state){
       if(self.reconnectTimer){
-        clearInterval(self.reconnectTimer);
+        clearTimeout(self.reconnectTimer);
         self.reconnectTimer = undefined;
       }
     }else{
       if(!self.reconnectTimer){
-        self.connect();
-        self.reconnectTimer = setInterval(function(){
+        self.reconnectTimer = setTimeout(function(){
+          self.reconnectTimer = undefined;
           self.connect();
         }, 5000);
       }
@@ -50,7 +63,9 @@ Mirobot.prototype = {
   
   broadcast: function(msg){
     for(i in this.listeners){
-      this.listeners[i](msg);
+      if(this.listeners.hasOwnProperty(i)){
+        this.listeners[i](msg);
+      }
     }
   },
 
@@ -77,6 +92,22 @@ Mirobot.prototype = {
   turn: function(direction, angle, cb){
     this.send({cmd: direction, arg: angle}, cb);
   },
+  
+  forward: function(distance, cb){
+    this.move('forward', distance, cb);
+  },
+  
+  back: function(distance, cb){
+    this.move('back', distance, cb);
+  },
+  
+  left: function(distance, cb){
+    this.move('left', distance, cb);
+  },
+  
+  right: function(distance, cb){
+    this.move('right', distance, cb);
+  },
 
   penup: function(cb){
     this.send({cmd: 'penup'}, cb);
@@ -96,6 +127,50 @@ Mirobot.prototype = {
 
   follow: function(cb){
     this.send({cmd: 'follow'}, cb);
+  },
+
+  collisionSensorState: function(cb){
+    if(this.sensorState.collide === null || !this.collideListening){
+      var self = this;
+      this.send({cmd: 'collideState'}, function(state, msg){
+        if(state === 'complete'){
+          self.sensorState.collide = msg.msg;
+          cb(self.sensorState.collide);
+        }
+      });
+    }else{
+      cb(this.sensorState.collide);
+    }
+  },
+
+  followSensorState: function(cb){
+    if(this.sensorState.follow === null || !this.followListening){
+      var self = this;
+      this.send({cmd: 'followState'}, function(state, msg){
+        if(state === 'complete'){
+          self.sensorState.follow = msg.msg;
+          cb(self.sensorState.follow);
+        }
+      });
+    }else{
+      cb(this.sensorState.follow);
+    }
+  },
+
+  collideSensorNotify: function(state, cb){
+    var self = this;
+    this.send({cmd: 'collideNotify', arg: (state ? 'true' : 'false')}, function(){
+      self.collideListening = true;
+      cb();
+    });
+  },
+
+  followSensorNotify: function(state, cb){
+    var self = this;
+    this.send({cmd: 'followNotify', arg: (state ? 'true' : 'false')}, function(){
+      self.followListening = true;
+      cb();
+    });
   },
 
   stop: function(cb){
@@ -129,14 +204,14 @@ Mirobot.prototype = {
     this.send({cmd:'version'}, cb);
   },
 
-  send: function(msg, cb, timeout){
+  send: function(msg, cb){
     msg.id = Math.random().toString(36).substr(2, 10)
     if(cb){
       this.cbs[msg.id] = cb;
     }
     if(msg.arg){ msg.arg = msg.arg.toString(); }
     if(['stop', 'pause', 'resume', 'ping', 'version'].indexOf(msg.cmd) >= 0){
-      this.send_msg(msg, true);
+      this.send_msg(msg);
     }else{
       this.msg_stack.push(msg);
       this.process_msg_queue();
@@ -161,6 +236,11 @@ Mirobot.prototype = {
     msg = JSON.parse(ws_msg.data);
     console.log(msg);
     clearTimeout(this.timeoutTimer);
+    if(msg.status === 'notify'){
+      this.broadcast(msg.id);
+      this.sensorState[msg.id] = msg.msg;
+      return;
+    }
     if(this.msg_stack.length > 0 && this.msg_stack[0].id == msg.id){
       if(msg.status === 'accepted'){
         if(this.cbs[msg.id]){
