@@ -398,7 +398,7 @@ Builder.prototype = {
         'seconds'
       ],
       run: function(node, mirobot, cb){
-        mirobot.beep(node.args().duration * 1000);
+        mirobot.beep(node.args().duration * 1000, cb);
       }
     }
   ]
