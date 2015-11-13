@@ -30,5 +30,6 @@ void ICACHE_FLASH_ATTR wifiInit()
   apConfig.channel = 7;
   apConfig.max_connection = 3;
   apConfig.ssid_hidden = 0;
+  apConfig.beacon_interval = 100;
   wifi_softap_set_config(&apConfig);
 }
