@@ -18,7 +18,7 @@ void ICACHE_FLASH_ATTR wifiInit()
   wifi_set_ip_info(SOFTAP_IF, &info);
 
   wifi_get_macaddr(SOFTAP_IF, macaddr);
-
+  wifi_softap_get_config(&apConfig);
   os_memset(apConfig.password, 0, sizeof(apConfig.password));
 
   os_memset(apConfig.ssid, 0, sizeof(apConfig.ssid));
