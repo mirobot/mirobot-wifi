@@ -76,7 +76,7 @@ Mirobot.prototype = {
   handleError: function(err){
     if(err instanceof CloseEvent || err === 'Timeout'){
       if(this.ws.readyState === WebSocket.OPEN){
-        this.ws.close()
+        this.ws.close();
       }
       this.setConnectedState(false);
       this.msg_stack = [];
@@ -222,6 +222,7 @@ Mirobot.prototype = {
     var self = this;
     console.log(msg);
     this.ws.send(JSON.stringify(msg));
+    if(this.timeoutTimer) clearTimeout(this.timeoutTimer);
     this.timeoutTimer = window.setTimeout(function(){ self.handleError("Timeout") }, 3000);
   },
   
