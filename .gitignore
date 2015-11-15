@@ -8,3 +8,4 @@ espfstest/*.o
 espfstest/espfstest
 *.DS_Store
 html*
+*.bin
