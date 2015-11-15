@@ -75,6 +75,15 @@ void ioInit(){
   arduinoReset();
 }
 
+//#define SHOW_HEAP_USE
+#ifdef SHOW_HEAP_USE
+static ETSTimer prHeapTimer;
+
+static void ICACHE_FLASH_ATTR prHeapTimerCb(void *arg) {
+	os_printf("Heap: %ld\n", (unsigned long)system_get_free_heap_size());
+}
+#endif
+
 //Main routine. Initialize stdout, the I/O, filesystem and the webserver and we're done.
 void user_init(void) {
   wifiInit();
@@ -86,5 +95,10 @@ void user_init(void) {
   httpdInit(builtInUrls, 80);
   wsInit(8899, wsHandler);
   mdnsInit();
+#ifdef SHOW_HEAP_USE
+	os_timer_disarm(&prHeapTimer);
+	os_timer_setfn(&prHeapTimer, prHeapTimerCb, NULL);
+	os_timer_arm(&prHeapTimer, 3000, 1);
+#endif
   os_printf("\nReady\n");
 }
