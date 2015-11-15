@@ -28,7 +28,7 @@ def hex2bin(hexFile)
   bin.pack('C*')
 end
 
-err("Not enough arguments") unless ARGV.length == 2
+err("usage: flasharduino.rb <address> <hex file>") unless ARGV.length == 2
 
 address = ARGV[0]
 hexFile = ARGV[1]
