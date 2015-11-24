@@ -198,10 +198,11 @@ var reload = function(delay){
 }
 
 var update = function(e){
-  console.log(e)
-  e.srcElement.innerHTML = "Updating";
-  e.srcElement.disabled = true;
-  var type = e.srcElement.parentNode.id;
+  if (!e) var e = window.event;
+  var target = e.target || e.srcElement;
+  target.innerHTML = "Updating";
+  target.disabled = true;
+  var type = target.parentNode.id;
   if(type == 'arduino'){
     // Write and test the new firmware
     writeFlash(versions.arduino.url, hex2bin, 'arduino', 0x76000, function(res){
@@ -291,12 +292,14 @@ var checkVersions = function(){
 }
 
 var handlePrerelease = function(e){
-  usePrereleases = e.srcElement.checked;
+  var target = e.target || e.srcElement;
+  usePrereleases = target.checked;
   checkVersions();
 }
 
 var handlePrerelease = function(e){
-  usePrereleases = e.srcElement.checked;
+  var target = e.target || e.srcElement;
+  usePrereleases = target.checked;
   checkVersions();
 }
 
