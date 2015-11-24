@@ -133,6 +133,30 @@ Mirobot.prototype = {
     this.send({cmd: 'follow'}, cb);
   },
 
+  slackCalibration: function(cb){
+    this.send({cmd: 'slackCalibration'}, cb);
+  },
+
+  moveCalibration: function(cb){
+    this.send({cmd: 'moveCalibration'}, cb);
+  },
+
+  turnCalibration: function(cb){
+    this.send({cmd: 'turnCalibration'}, cb);
+  },
+
+  calibrateSlack: function(steps, cb){
+    this.send({cmd: 'calibrateSlack', arg: "" + steps}, cb);
+  },
+
+  calibrateMove: function(factor, cb){
+    this.send({cmd: 'calibrateMove', arg: "" + factor}, cb);
+  },
+
+  calibrateTurn: function(factor, cb){
+    this.send({cmd: 'calibrateTurn', arg: "" + factor}, cb);
+  },
+
   collisionSensorState: function(cb){
     if(this.sensorState.collide === null || !this.collideListening){
       var self = this;
