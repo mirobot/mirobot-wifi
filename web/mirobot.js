@@ -90,6 +90,10 @@ Mirobot.prototype = {
   },
 
   turn: function(direction, angle, cb){
+    if(angle < 0){
+      angle = -angle;
+      direction = (direction === 'left' ? 'right' : 'left')
+    }
     this.send({cmd: direction, arg: angle}, cb);
   },
   
@@ -101,12 +105,12 @@ Mirobot.prototype = {
     this.move('back', distance, cb);
   },
   
-  left: function(distance, cb){
-    this.move('left', distance, cb);
+  left: function(angle, cb){
+    this.turn('left', angle, cb);
   },
   
-  right: function(distance, cb){
-    this.move('right', distance, cb);
+  right: function(angle, cb){
+    this.turn('right', angle, cb);
   },
 
   penup: function(cb){
