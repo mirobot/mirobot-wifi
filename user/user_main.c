@@ -60,6 +60,7 @@ void serialHandler(uint8 incoming){
 
 void wsHandler(int conn_no, char *msg){
   // Send the received WebSocket payload out via the serial port
+  //os_printf("RECV: %s\n", msg);
   uart0_sendStr(msg);
   uart0_sendStr("\r\n");
 }

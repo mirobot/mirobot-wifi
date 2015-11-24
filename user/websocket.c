@@ -22,6 +22,10 @@ static WsConnData connData;
 static struct espconn wsConn;
 static esp_tcp wsTcp;
 
+static unsigned char wsReadyFlag = TRUE;
+#define WS_BUFFER_LEN 256
+static char wsBuffer[WS_BUFFER_LEN];
+
 typedef void (*wsHandler)(int, char*);
 wsHandler handlerCb;
 
@@ -66,6 +70,18 @@ void ICACHE_FLASH_ATTR wsEndHeaders(WsConnData *conn) {
 //Callback called when the data on a socket has been successfully
 //sent.
 static void ICACHE_FLASH_ATTR wsSentCb(void *arg) {
+  char buff[130];
+  wsReadyFlag = TRUE;
+  if(strlen(wsBuffer) > 0){
+    // Pull the first message from the buffer
+    char * pch = strchr(wsBuffer, '\x1e');
+    strncpy ( buff, wsBuffer, pch-wsBuffer );
+    buff[pch-wsBuffer] = 0;
+    // Send it
+    wsSend(buff);
+    // Remove the first message from the buffer
+    memmove(wsBuffer, pch+1, WS_BUFFER_LEN-(pch-wsBuffer+1));
+  }
 }
 
 //Parse a line of header data and modify the connection data accordingly.
@@ -245,11 +261,20 @@ static void ICACHE_FLASH_ATTR wsConnectCb(void *arg) {
 }
 
 void ICACHE_FLASH_ATTR wsSend(char *msg){
-  if(connData.connType == WEBSOCKET){
-    os_sprintf(temp_buff, "%c%c%s", 0x81, (strlen(msg) & 0x7F), msg);
+  if(wsReadyFlag){
+    if(connData.connType == WEBSOCKET){
+      os_sprintf(temp_buff, "%c%c%s", 0x81, (strlen(msg) & 0x7F), msg);
+    }else{
+      os_sprintf(temp_buff, "%s\r", msg);
+    }
+    wsReadyFlag = FALSE;
+    os_printf("SEND: %s\n", msg);
     espconn_sent(connData.conn, (uint8 *)temp_buff, strlen(temp_buff));
   }else{
-    espconn_sent(connData.conn, (uint8 *)msg, strlen(msg));
+    os_printf("Buffering: %s\n", msg);
+    // Buffer the message
+    strcat(wsBuffer, msg);
+    strcat(wsBuffer, "\x1e");
   }
 }
 
