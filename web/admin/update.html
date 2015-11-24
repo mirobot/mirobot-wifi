@@ -71,7 +71,7 @@ var versions = {arduino:{current:null, latest:null, file:'mirobot-v2-firmware'},
 if(versions.wifi.romSlot.indexOf('romSlot') >= 0) versions.wifi.romSlot = "0";
 if(versions.wifi.current.indexOf('version') >= 0) versions.wifi.current = "2.0.0";
 if(versions.ui.current.indexOf('version') >= 0) versions.ui.current = "2.0.0";
-versions.wifi.romSlot = Number.parseInt(versions.wifi.romSlot);
+versions.wifi.romSlot = parseInt(versions.wifi.romSlot);
 
 var usePrereleases = false
 
