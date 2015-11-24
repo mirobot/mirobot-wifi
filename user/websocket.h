@@ -17,7 +17,7 @@ typedef enum {
   INITIALISED
 } webSocketState_t;
 
-//A struct describing a http connection. This gets passed to cgi functions.
+//A struct describing a websocket connection
 struct WsConnData {
   struct espconn *conn;
   WsPriv *priv;
