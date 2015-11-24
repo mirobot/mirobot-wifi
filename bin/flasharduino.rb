@@ -40,7 +40,6 @@ puts "Writing to flash"
 http = Net::HTTP.new(address)
 response = http.post("/admin/updatearduino.cgi", fw) 
 err("Couldn't write new data") unless response.code.to_i == 204
-puts response.code
 
 puts "Checking firmware"
 written = Net::HTTP.get(address, "/admin/readflash.bin?offset=#{0x76000}&length=#{fw.length}")
