@@ -1,23 +1,12 @@
 #include <esp8266.h>
 #include "mdns.h"
 
-static ETSTimer mdnsTimer;
-
-static void ICACHE_FLASH_ATTR mdnsTimerCb(void *arg) {
-  os_timer_disarm(&mdnsTimer);
-  mdnsInit();
-}
-
 void ICACHE_FLASH_ATTR mdnsInit()
 {
   struct ip_info sta_ip;
   wifi_get_ip_info(STATION_IF, &sta_ip);
   
   if(sta_ip.ip.addr == 0){
-    os_printf("\nDelaying mDNS\n");
-    os_timer_disarm(&mdnsTimer);
-    os_timer_setfn(&mdnsTimer, mdnsTimerCb, NULL);
-    os_timer_arm(&mdnsTimer, 10000, 0);
     return;
   }
   
