@@ -14,7 +14,6 @@
 #include "webpages-espfs.h"
 #include "rboot.h"
 #include "wifi.h"
-#include "mdns.h"
 
 char inputBuffer[100];
 int inputBufferCounter = 0;
@@ -95,7 +94,6 @@ void user_init(void) {
   captdnsInit();
   httpdInit(builtInUrls, 80);
   wsInit(8899, wsHandler);
-  mdnsInit();
 #ifdef SHOW_HEAP_USE
 	os_timer_disarm(&prHeapTimer);
 	os_timer_setfn(&prHeapTimer, prHeapTimerCb, NULL);

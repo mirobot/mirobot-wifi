@@ -63,12 +63,9 @@ var getAP = function(ap){
 }
 
 var showHide = function(){
-  el('clientDetails').style.display = (document.getElementById('wifiClientEnabled').checked ? 'block' : 'none');
-  el('APDetails').style.display = (document.getElementById('wifiAPEnabled').checked ? 'block' : 'none');
   el('APAuthPass').style.display = (document.getElementById('APAuth').value === '0' ?  'none' : 'block');
   var ap = getAP(el('clientSSID').value);
   el('clientPasswdInput').style.display = (!ap || ap.enc > 0 ?  'block' : 'none');
-  el('APChannelInput').style.display = (document.getElementById('wifiClientEnabled').checked ?  'none' : 'block');
   
   /*
   var disabled = document.getElementById('clientDHCP').checked;
@@ -101,12 +98,8 @@ setAPSelect = function(aps){
 
 var setupForm = function(){
   // set the mode
-  el('wifiClientEnabled').checked = !!(settings.wifiMode & 1);
-  el('wifiClientEnabled').onchange = showHide;
   el('clientPasswdInput').style.display = 'none';
   el('clientSSID').onchange = showHide;
-  el('wifiAPEnabled').checked = !!(settings.wifiMode & 2);
-  el('wifiAPEnabled').onchange = showHide;
   //el('clientDHCP').checked = (settings.clientDhcp == "true");
   //el('clientDHCP').onchange = showHide;
   //el('clientIp').value = settings.clientIp;
@@ -135,37 +128,23 @@ var setupForm = function(){
   showHide();
 }
 
-var getWifiMode = function(){
-  if(el('wifiAPEnabled').checked && el('wifiClientEnabled').checked){
-    return 3;
-  }else if(el('wifiAPEnabled').checked){
-    return 2;
-  }else if(el('wifiClientEnabled').checked){
-    return 1;
-  }else{
-    return 0;
-  }
-}
-
 var makeVars = function(){
   var output = {};
-  if(getWifiMode() !== parseInt(settings.wifiMode)) output.wifiMode = getWifiMode();
-  if(getWifiMode() & 1 > 0){
-    // Send the wifi client config
-    output.clientSSID = el('clientSSID').value;
-    var ap = getAP(output.clientSSID);
-    if(ap && ap.enc > 0 && el('clientPasswd').value === ''){
-      msg("Please enter a password to join the " + ap.essid + ' network');
-      return null;
-    }
-    if(el('clientPasswd').value !== '') output.clientPasswd = el('clientPasswd').value;
+  
+  // Send the wifi client config
+  output.clientSSID = el('clientSSID').value;
+  var ap = getAP(output.clientSSID);
+  if(ap && ap.enc > 0 && el('clientPasswd').value === ''){
+    msg("Please enter a password to join the " + ap.essid + ' network');
+    return null;
   }
-  if(getWifiMode() & 2 > 0){
-    // Send the access point settings
-    output.APSSID = el('APSSID').value
-    // if the client is disabled, send the channel
-    if(output.wifiMode & 1 == 0) output.APChannel = el('APChannel').value;
-  }
+  if(el('clientPasswd').value !== '') output.clientPasswd = el('clientPasswd').value;
+
+  // Send the access point settings
+  output.APSSID = el('APSSID').value
+  // if the client is disabled, send the channel
+  if(output.wifiMode & 1 == 0) output.APChannel = el('APChannel').value;
+
   // filter out the settings that haven't changed
   for(var k in output){
     if(output[k] === settings[k]){
@@ -217,7 +196,7 @@ window.onload=function(e) {
 </script>
 </head>
 <body>
-  <h1><input type="checkbox" id="wifiClientEnabled">WiFi Client</h1>
+  <h1>WiFi Client</h1>
   <div id="clientDetails">
     <select id="clientSSID">
       <option>Looking for Access Points...</option>
@@ -236,7 +215,7 @@ window.onload=function(e) {
       <p>MAC Address: <span id="clientMac"></span></p>
     </div>
   </div>
-  <h1><input type="checkbox" id="wifiAPEnabled">WiFi Access Point</h1>
+  <h1>WiFi Access Point</h1>
   <div id="APDetails">
     <label>Access Point Name: <input type="text" id="APSSID"></label>
     <label id="APChannelInput">Channel: <select id="APChannel"></select>
