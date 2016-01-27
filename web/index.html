@@ -386,7 +386,7 @@
         wirelessConfig = config;
 
         var conn = el('wifiConnState');
-        if(wirelessConfig.clientConnected === '0'){
+        if(wirelessConfig.clientConnected === '0' || wirelessConfig.clientIp === '0.0.0.0'){
           conn.innerHTML = '&#10007; Configure WiFi';
           conn.className = 'connState';
           checkConfig(10000);
