@@ -102,7 +102,7 @@ var updateVersion = function(type){
   versions[type].url = 'http://updates.mirobot.io' + remoteVersions.latest[type].assets[0]
   if(usePrereleases && remoteVersions.prerelease[type]){
     versions[type].latest = remoteVersions.prerelease[type].version
-    versions[type].url = 'http://updates.mirobot.io' + remoteVersions.latest[type].assets[0]
+    versions[type].url = 'http://updates.mirobot.io' + remoteVersions.prerelease[type].assets[0]
   }
   qs('#' + type + ' .current').innerHTML = versions[type].current || 'Unknown'
   qs('#' + type + ' .latest').innerHTML = versions[type].latest || 'Checking'
