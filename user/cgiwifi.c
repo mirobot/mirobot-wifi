@@ -156,3 +156,20 @@ int ICACHE_FLASH_ATTR tplWlanInfo(HttpdConnData *connData, char *token, void **a
   httpdSend(connData, buff, -1);
   return HTTPD_CGI_DONE;
 }
+
+//Cgi that allows the WiFi firmware to be updated via http
+int ICACHE_FLASH_ATTR cgiWifiReset(HttpdConnData *connData) {
+  static struct station_config stconf;
+
+  if(connData->requestType == HTTPD_METHOD_POST){
+    wifi_station_get_config(&stconf);
+    memset(stconf.ssid,0,sizeof(stconf.ssid));
+    memset(stconf.password,0,sizeof(stconf.password));
+    wifi_station_disconnect();
+    wifi_station_set_config(&stconf);
+    httpdSend(connData, "HTTP/1.0 204 No Content\r\nServer: esp8266-httpd/0.3\r\n\r\n", -1);
+  }else{
+    httpdSend(connData, "HTTP/1.0 200 OK\r\nServer: esp8266-httpd/0.3\r\nContent-Length: 105\r\n\r\n<html><body><form action=\"\" method=\"post\"><input type=\"submit\" value=\"Reset WiFi Settings\"></form></body>", -1);
+  }
+  return HTTPD_CGI_DONE;
+}

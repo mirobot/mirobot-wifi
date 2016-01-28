@@ -33,6 +33,7 @@ HttpdBuiltInUrl builtInUrls[]={
   {"/admin/wifi.html", cgiEspFsTemplate, tplWlanInfo},
   {"/admin/wifiscan.cgi", cgiWiFiScan, NULL},
   {"/admin/settings.cgi", cgiWifiSettings, NULL},
+  {"/admin/reset.html", cgiWifiReset, NULL},
   
   {"/index.html", cgiEspFsTemplate, tplWlanInfo},
 
