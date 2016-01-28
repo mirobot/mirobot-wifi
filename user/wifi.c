@@ -72,5 +72,5 @@ void ICACHE_FLASH_ATTR wifiInit()
 
   os_timer_disarm(&wifiTimer);
   os_timer_setfn(&wifiTimer, wifiTimerCb, NULL);
-  os_timer_arm(&wifiTimer, 20000, 0);
+  os_timer_arm(&wifiTimer, 10000, 0);
 }

@@ -35,101 +35,51 @@ int ICACHE_FLASH_ATTR cgiWifiSettings(HttpdConnData *connData) {
   }
 
   // Configure the WiFi client settings
-  if(wifi_get_opmode() & 1){
-    // Configure the SSID of the access point to connect to
-    len = httpdFindArg(connData->post->buff, "clientSSID", buff, sizeof(buff));
-    if(len>0){
-      if(os_strcmp((const char *)stconf.ssid, buff) != 0){
-        // the value has changed
-        os_printf("Setting Client SSID: %s\n", buff);
-        os_strncpy((char*)stconf.ssid, buff, 32);
-        connect = true;
-      }
+  // Configure the SSID of the access point to connect to
+  len = httpdFindArg(connData->post->buff, "clientSSID", buff, sizeof(buff));
+  if(len>0){
+    if(os_strcmp((const char *)stconf.ssid, buff) != 0){
+      // the value has changed
+      os_printf("Setting Client SSID: %s\n", buff);
+      os_strncpy((char*)stconf.ssid, buff, 32);
+      connect = true;
     }
-
-    // Configure the password to use to connect to the access point
-    len = httpdFindArg(connData->post->buff, "clientPasswd", buff, sizeof(buff));
-    if(len>0){
-      if(os_strcmp((const char *)stconf.password, buff) != 0){
-        // the value has changed
-        os_printf("Setting Client Passwd: %s\n", buff);
-        os_strncpy((char*)stconf.password, buff, 64);
-        connect = true;
-      }
-    }
-
-    // No point setting any of this at the moment because it's not persistent
-    /*
-    //clientDhcp
-    len = httpdFindArg(connData->post->buff, "clientDhcp", buff, sizeof(buff));
-    if(len>0){
-      os_printf("Setting DHCP: %d\n", atoi(buff));
-      if(atoi(buff) == 1){
-        os_printf("Starting DHCP\n");
-        if(wifi_station_dhcpc_status() == DHCP_STOPPED){
-          wifi_station_dhcpc_start();
-          restart = true;
-        }
-      }else{
-        os_printf("Stopping DHCP\n");
-        if(wifi_station_dhcpc_status() == DHCP_STARTED){
-          wifi_station_dhcpc_stop();
-          restart = true;
-        }
-      }
-    }
-
-    if(wifi_station_dhcpc_status() == DHCP_STOPPED){
-      // get the current config
-      wifi_get_ip_info(STATION_IF, &ipInfo);
-      //clientIp
-      len = httpdFindArg(connData->post->buff, "clientIp", buff, sizeof(buff));
-      if(len>0){
-        os_printf("Setting client IP: %s\n", buff);
-        IP4_ADDR(&ipInfo.ip, 10, 10, 100, 254);
-      }
-      //clientGateway
-      len = httpdFindArg(connData->post->buff, "clientGateway", buff, sizeof(buff));
-      if(len>0){
-        os_printf("Setting client GW: %s\n", buff);
-        IP4_ADDR(&ipInfo.gw, 10, 10, 100, 1);
-      }
-      //clientNetmask
-      len = httpdFindArg(connData->post->buff, "clientNetmask", buff, sizeof(buff));
-      if(len>0){
-        os_printf("Setting client NM: %s\n", buff);
-        IP4_ADDR(&ipInfo.netmask, 255, 255, 255, 0);
-      }
-      wifi_set_ip_info(STATION_IF, &ipInfo);
-    }
-    wifi_station_set_config(&stconf);
-  */
   }
 
-  if(wifi_get_opmode() & 2){
-    //APAuth
-    len = httpdFindArg(connData->post->buff, "APAuth", buff, sizeof(buff));
-    if(len>0){
-      os_printf("Setting APAuth: %d\n", atoi(buff));
-      apconf.authmode = atoi(buff);
-      restart = true;
+  // Configure the password to use to connect to the access point
+  len = httpdFindArg(connData->post->buff, "clientPasswd", buff, sizeof(buff));
+  if(len>0){
+    if(os_strcmp((const char *)stconf.password, buff) != 0){
+      // the value has changed
+      os_printf("Setting Client Passwd: %s\n", buff);
+      os_strncpy((char*)stconf.password, buff, 64);
+      connect = true;
     }
-    //APChannel
-    len = httpdFindArg(connData->post->buff, "APChannel", buff, sizeof(buff));
-    if(len>0){
-      os_printf("Setting Channel: %d\n", atoi(buff));
-      apconf.channel = atoi(buff);
-      restart = true;
-    }
-    //APSSID
-    len = httpdFindArg(connData->post->buff, "APSSID", buff, sizeof(buff));
-    if(len>0){
-      os_printf("Setting AP SSID: %s\n", buff);
-      os_strncpy((char*)apconf.ssid, buff, 32);
-      restart = true;
-    }
-    wifi_softap_set_config(&apconf);
   }
+
+  // Configure the WiFi AP settings
+  //APAuth
+  len = httpdFindArg(connData->post->buff, "APAuth", buff, sizeof(buff));
+  if(len>0){
+    os_printf("Setting APAuth: %d\n", atoi(buff));
+    apconf.authmode = atoi(buff);
+    restart = true;
+  }
+  //APChannel
+  len = httpdFindArg(connData->post->buff, "APChannel", buff, sizeof(buff));
+  if(len>0){
+    os_printf("Setting Channel: %d\n", atoi(buff));
+    apconf.channel = atoi(buff);
+    restart = true;
+  }
+  //APSSID
+  len = httpdFindArg(connData->post->buff, "APSSID", buff, sizeof(buff));
+  if(len>0){
+    os_printf("Setting AP SSID: %s\n", buff);
+    os_strncpy((char*)apconf.ssid, buff, 32);
+    restart = true;
+  }
+  wifi_softap_set_config(&apconf);
 
   if(restart){
     //Schedule disconnect/connect
@@ -138,6 +88,7 @@ int ICACHE_FLASH_ATTR cgiWifiSettings(HttpdConnData *connData) {
     os_timer_arm(&postTimer, 500, 0);
   }else  if(connect){
     os_printf("Try to connect to AP %s pw %s\n", stconf.ssid, stconf.password);
+    if (wifi_get_opmode() != STATIONAP_MODE) wifi_set_opmode(STATIONAP_MODE);
     wifi_station_disconnect();
     ETS_UART_INTR_DISABLE();
     wifi_station_set_config(&stconf);
