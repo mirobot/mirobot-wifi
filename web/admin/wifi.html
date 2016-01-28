@@ -142,10 +142,10 @@ var makeVars = function(){
 }
 
 var sendForm = function(){
-	var xhr = xhrObject();
+  var xhr = xhrObject();
   var urlEncodedData = "";
   var urlEncodedDataPairs = [];
-  
+
   var data = makeVars();
   if(!data) return;
   // We turn the data object into an array of URL encoded key value pairs.
@@ -153,16 +153,19 @@ var sendForm = function(){
     urlEncodedDataPairs.push(encodeURIComponent(name) + '=' + encodeURIComponent(data[name]));
   }
   if(urlEncodedDataPairs.length === 0) return;
+  el('submit').disabled = true;
+  msg('Saving configuration');
   urlEncodedData = urlEncodedDataPairs.join('&').replace(/%20/g, '+');
   xhr.onreadystatechange=function() {
-		if (xhr.readyState==4){
-		  if(xhr.status>=200 && xhr.status<300) {
+    if (xhr.readyState==4){
+      if(xhr.status>=200 && xhr.status<300) {
         msg('Configuration saved');
-		  }else{
+      }else{
         msg('Error saving configuration');
-		  }
-		}
-	}
+      }
+      el('submit').disabled = false;
+    }
+  }
   // setup our request
   xhr.open('POST', 'settings.cgi');
   // add the required HTTP header to handle a form data POST request
