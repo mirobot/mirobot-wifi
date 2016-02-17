@@ -1,11 +1,13 @@
 #include <esp8266.h>
 #include "wifi.h"
 #include "mdns.h"
+#include "discovery.h"
 
 static char ssid[33];
 static uint8_t macaddr[6];
 static struct ip_info ipconfig;
 static ETSTimer wifiTimer;
+static ETSTimer discoveryTimer;
 
 static void ICACHE_FLASH_ATTR wifiTimerCb(void *arg) {
   os_printf("\nChecking WiFi\n");
@@ -17,8 +19,15 @@ static void ICACHE_FLASH_ATTR wifiTimerCb(void *arg) {
   }
 }
 
-void wifi_handle_event_cb(System_Event_t *evt)
-{
+static void ICACHE_FLASH_ATTR discoveryTimerCb() {
+  os_printf("\nMaking discovery request\n");
+  send_discovery_request();
+  os_timer_disarm(&discoveryTimer);
+  os_timer_setfn(&discoveryTimer, discoveryTimerCb, NULL);
+  os_timer_arm(&discoveryTimer, 300000, 0); //call again in 5 minutes
+}
+
+void wifi_handle_event_cb(System_Event_t *evt) {
   switch (evt->event) {
     case EVENT_STAMODE_CONNECTED:
       break;
@@ -29,6 +38,9 @@ void wifi_handle_event_cb(System_Event_t *evt)
     case EVENT_STAMODE_GOT_IP:
       os_printf("Connected to WIFi station\n");
       os_timer_disarm(&wifiTimer);
+      // Make the discovery request
+      discoveryTimerCb();
+      // Enable mdns
       mdnsInit();
       break;
     case EVENT_SOFTAPMODE_STACONNECTED:
@@ -40,8 +52,7 @@ void wifi_handle_event_cb(System_Event_t *evt)
   }
 }
 
-void ICACHE_FLASH_ATTR wifiInit()
-{
+void ICACHE_FLASH_ATTR wifiInit() {
   struct softap_config apConfig;
   struct ip_info info;
 
