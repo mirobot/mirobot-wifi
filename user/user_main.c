@@ -100,5 +100,7 @@ void user_init(void) {
 	os_timer_setfn(&prHeapTimer, prHeapTimerCb, NULL);
 	os_timer_arm(&prHeapTimer, 3000, 1);
 #endif
+  // Send a notification string to say we're ready
+  uart0_sendStr("{\"status\":\"notify\",\"id\":\"boot\",\"msg\":\"" VERSION "\"}");
   os_printf("\nReady\n");
 }
